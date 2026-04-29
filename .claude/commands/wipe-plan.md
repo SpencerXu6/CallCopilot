@@ -1,0 +1,1 @@
+Wipe the contents of `/Users/spencerxu/Desktop/School/Cseed Project/CallCopilot/Plan/PLAN.md`, leaving it completely empty. Then confirm to the user that the plan has been cleared and they are ready to start fresh.
