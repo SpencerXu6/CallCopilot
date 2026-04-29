@@ -1,98 +1,238 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const PRESETS = [
+  { zh: '更改垃圾桶大小', en: 'I want to change my garbage bin size.' },
+  { zh: '银行账户问题', en: 'I have a question about my bank account.' },
+  { zh: '预约医生', en: 'I want to schedule a doctor appointment.' },
+  { zh: '账单问题', en: 'I have a question about my bill.' },
+  { zh: '更改地址', en: 'I need to update my address.' },
+  { zh: '取消服务', en: 'I want to cancel my service.' },
+];
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [goal, setGoal] = useState('');
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const startCall = () => {
+    const trimmed = goal.trim();
+    if (!trimmed) return;
+    router.push({ pathname: '/call', params: { goal: trimmed } });
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoEmoji}>📞</Text>
+            </View>
+            <Text style={styles.appName}>CallCopilot</Text>
+            <Text style={styles.appSub}>通话助手 · Your Call Assistant</Text>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>您想完成什么任务？</Text>
+            <Text style={styles.cardSub}>What do you need help with on this call?</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="例如：我想把垃圾桶从大号换成小号..."
+              placeholderTextColor="#9CA3AF"
+              value={goal}
+              onChangeText={setGoal}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+          </View>
+
+          <Text style={styles.presetsTitle}>常见任务 / Common Tasks</Text>
+          <View style={styles.presetGrid}>
+            {PRESETS.map(p => {
+              const active = goal === p.en;
+              return (
+                <Pressable
+                  key={p.zh}
+                  style={[styles.presetChip, active && styles.presetChipActive]}
+                  onPress={() => setGoal(p.en)}>
+                  <Text style={[styles.presetZh, active && styles.presetTextActive]}>{p.zh}</Text>
+                  <Text
+                    style={[styles.presetEn, active && styles.presetTextActive]}
+                    numberOfLines={1}>
+                    {p.en}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable
+            style={[styles.startBtn, !goal.trim() && styles.startBtnDisabled]}
+            onPress={startCall}
+            disabled={!goal.trim()}>
+            <Text style={styles.startBtnText}>开始通话 / Start Call</Text>
+          </Pressable>
+
+          <Text style={styles.tip}>
+            💡 开始后，输入客服说的话，AI 会实时提供翻译和建议
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  safe: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  flex: {
+    flex: 1,
+  },
+  content: {
+    paddingBottom: 40,
+  },
+  header: {
     alignItems: 'center',
-    gap: 8,
+    paddingTop: 48,
+    paddingBottom: 32,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E0F7FA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  logoEmoji: {
+    fontSize: 36,
+  },
+  appName: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  appSub: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  card: {
+    marginHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 24,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  cardSub: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 14,
+  },
+  textInput: {
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    color: '#0F172A',
+    minHeight: 90,
+    lineHeight: 22,
+  },
+  presetsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    marginLeft: 20,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  presetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    marginBottom: 28,
+  },
+  presetChip: {
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    margin: 4,
+    backgroundColor: '#FFFFFF',
+    maxWidth: '47%',
+  },
+  presetChipActive: {
+    borderColor: '#0a7ea4',
+    backgroundColor: '#EFF6FF',
+  },
+  presetZh: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  presetEn: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  presetTextActive: {
+    color: '#0a7ea4',
+  },
+  startBtn: {
+    marginHorizontal: 20,
+    backgroundColor: '#0a7ea4',
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  startBtnDisabled: {
+    opacity: 0.35,
+  },
+  startBtnText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  tip: {
+    fontSize: 13,
+    color: '#94A3B8',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    lineHeight: 20,
   },
 });

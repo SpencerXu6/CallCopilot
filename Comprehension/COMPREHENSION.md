@@ -2,7 +2,9 @@
 
 ## What This Project Is
 
-**CallCopilot** is a React Native / Expo mobile app. As of the time of this document, it is in its **initial scaffold state** — the Expo template has been set up and customized with theming/fonts, but the actual "CallCopilot" product feature has not been implemented yet. `Plan/PLAN.md` and this file exist as placeholders awaiting content.
+**CallCopilot** is a React Native / Expo mobile app for Chinese-speaking users making English phone calls in the United States. The user enters their goal (in Chinese or English), then either **types** or **records** what the customer service agent says. The AI responds instantly with a structured 5-section breakdown: plain Chinese understanding, Chinese translation, what to do next, an English reply they can read aloud, and optional notes.
+
+The app is **fully built and working** as of the end of the first build session. Core feature (text input + AI response) and microphone recording + Whisper transcription are both implemented and running.
 
 ---
 
@@ -10,7 +12,7 @@
 
 - **Canonical working directory**: `/Users/spencerxu/Desktop/School/Cseed Project/CallCopilot`
 - **GitHub**: `https://github.com/SpencerXu6/CallCopilot` (branch: `main`)
-- **Note**: A copy also exists at `/Users/spencerxu/CallCopilot` — this is the original scaffold and is NOT the active project. All development happens in the Cseed Project directory above.
+- **Stale copy** at `/Users/spencerxu/CallCopilot` — was deleted. All work is in the Cseed Project directory.
 
 ---
 
@@ -24,39 +26,24 @@
 | Routing | expo-router | ~6.0.23 |
 | Navigation | @react-navigation/native + bottom-tabs | ^7 |
 | Animations | react-native-reanimated | ~4.1.1 |
-| Animation Workers | react-native-worklets | 0.5.1 |
-| Icons (iOS) | expo-symbols (native SF Symbols) | ~1.0.8 |
+| Audio recording | expo-av | SDK 54 compatible |
+| Icons (iOS) | expo-symbols (SF Symbols) | ~1.0.8 |
 | Icons (Android/Web) | @expo/vector-icons (MaterialIcons) | ^15.0.3 |
 | Language | TypeScript | ~5.9.2 |
-| Linting | ESLint + eslint-config-expo | ^9 / ~10 |
+| AI (chat) | Groq API — `llama-3.3-70b-versatile` | direct fetch, no SDK |
+| AI (transcription) | Groq Whisper — `whisper-large-v3-turbo` | direct fetch, no SDK |
+| API Key | `EXPO_PUBLIC_GROQ_API_KEY` in `.env.local` | gitignored (`.env*.local`) |
 
 **Architecture flags:**
 - `newArchEnabled: true` — React Native New Architecture (JSI, no bridge)
 - `experiments.reactCompiler: true` — React Compiler auto-memoization
-- `experiments.typedRoutes: true` — Type-safe routing via generated `.expo/types/router.d.ts`
+- `experiments.typedRoutes: true` — Type-safe routing
 
----
-
-## app.json — Configuration
-
-```
-name/slug: CallCopilot
-version: 1.0.0
-orientation: portrait
-scheme: callcopilot          ← deep link URL scheme: callcopilot://
-userInterfaceStyle: automatic  ← supports light + dark
-```
-
-**iOS**: `supportsTablet: true`
-
-**Android**:
-- `edgeToEdgeEnabled: true` — content renders behind system bars
-- `predictiveBackGestureEnabled: false`
-- Adaptive icon: separate foreground / background / monochrome images; background color `#E6F4FE`
-
-**Web**: `output: "static"` — generates static HTML (suitable for CDN deployment)
-
-**Plugins**: `expo-router`, `expo-splash-screen` (white bg light / black bg dark, splash image 200px wide)
+**Why Groq instead of Anthropic:**
+- Groq has a generous free tier (no credit card required) — ideal for testing
+- Same quality for translation/guidance tasks using Llama 3.3 70B
+- Whisper transcription is also free on Groq's tier
+- Switch back to Anthropic by changing the URL, auth header, and model name in `services/claude.ts`
 
 ---
 
@@ -64,354 +51,255 @@ userInterfaceStyle: automatic  ← supports light + dark
 
 ```
 app/
-  _layout.tsx          ← Root Stack navigator + ThemeProvider
-  modal.tsx            ← /modal route (modal presentation)
+  _layout.tsx          ← Root Stack navigator (registers tabs + call + modal)
+  modal.tsx            ← /modal route (unused, kept from scaffold)
+  call.tsx             ← /call route — Call Assistance screen (MAIN FEATURE)
   (tabs)/
-    _layout.tsx        ← Tab bar navigator
-    index.tsx          ← / (Home tab)
-    explore.tsx        ← /explore (Explore tab)
+    _layout.tsx        ← Tab group, single Home tab, tab bar hidden
+    index.tsx          ← / — Goal Setup screen
+    explore.tsx        ← /explore — UNUSED (kept from scaffold)
 
-components/
-  parallax-scroll-view.tsx   ← Animated scrollview with parallax header
-  themed-text.tsx            ← Theme-aware Text wrapper
-  themed-view.tsx            ← Theme-aware View wrapper
-  haptic-tab.tsx             ← Tab bar button with iOS haptic feedback
-  hello-wave.tsx             ← Animated waving hand emoji
-  external-link.tsx          ← Link that opens in-app browser on native
-  ui/
-    collapsible.tsx            ← Expand/collapse accordion component
-    icon-symbol.ios.tsx        ← SF Symbols (iOS only)
-    icon-symbol.tsx            ← MaterialIcons fallback (Android/Web)
-
-constants/
-  theme.ts             ← Colors + Fonts constants
+services/
+  claude.ts            ← Groq chat API: system prompt, sendCallMessage(), parseResponse()
+  whisper.ts           ← Groq Whisper API: transcribeAudio()
 
 hooks/
-  use-color-scheme.ts         ← Re-exports useColorScheme from react-native (native)
-  use-color-scheme.web.ts     ← SSR-safe useColorScheme for web (web platform override)
-  use-theme-color.ts          ← Resolves a named color from the current theme
+  use-call-session.ts  ← useCallSession(goal) — manages message history + AI calls
+  use-audio-recorder.ts← useAudioRecorder(apiKey, onTranscript) — mic recording state
+  use-color-scheme.ts  ← Re-exports useColorScheme from react-native (native)
+  use-color-scheme.web.ts ← SSR-safe useColorScheme for web
+  use-theme-color.ts   ← Resolves named color from current theme
+
+components/
+  (all original Expo scaffold components — unused by app screens, kept for future use)
+
+constants/
+  theme.ts             ← Colors + Fonts constants (still referenced)
 
 Comprehension/
   COMPREHENSION.md     ← This file
 
 Plan/
-  PLAN.md              ← Planning document (empty placeholder)
+  PLAN.md              ← Full product + technical plan
 
 .claude/
   commands/
-    research.md        ← /research slash command — reads COMPREHENSION.md to onboard a new agent
-    wipe-plan.md       ← /wipe-plan slash command — clears PLAN.md for a fresh planning session
+    research.md        ← /research slash command
+    wipe-plan.md       ← /wipe-plan slash command
+
+.env.local             ← EXPO_PUBLIC_GROQ_API_KEY=gsk_... (gitignored, user fills in)
 ```
 
 ---
 
 ## Routing Architecture
 
-expo-router maps the filesystem directly to URL routes. The `.expo/types/router.d.ts` file (auto-generated) provides type-safe `href` values for all routes.
+```
+Stack (app/_layout.tsx)
+├── (tabs)             ← tab bar hidden, single screen group
+│   └── index.tsx      ← route: /  (Goal Setup)
+└── call.tsx           ← route: /call?goal=...  (Call Assistance)
+```
 
-**Defined routes:**
-| File | Route |
-|---|---|
-| `app/(tabs)/index.tsx` | `/` or `/(tabs)` |
-| `app/(tabs)/explore.tsx` | `/explore` or `/(tabs)/explore` |
-| `app/modal.tsx` | `/modal` |
-| *(auto)* | `/_sitemap` |
+**User flow:**
+1. App opens → Goal Setup screen (`/`)
+2. User types goal OR taps a preset chip → taps "开始通话 / Start Call"
+3. Navigates to `/call?goal=...`
+4. User taps 🎙️ mic button (records agent speech) OR types manually → taps 发送
+5. AI responds with 5-section structured guidance
+6. User taps "结束" → back to Goal Setup
 
 ---
 
 ## Screen-by-Screen Walkthrough
 
-### Root Layout — `app/_layout.tsx`
+### Goal Setup Screen — `app/(tabs)/index.tsx`
 
-```tsx
-export const unstable_settings = { anchor: '(tabs)' };
-```
-This tells expo-router that `(tabs)` is the default group when navigating to `/`.
+- `SafeAreaView` + `KeyboardAvoidingView` + `ScrollView`
+- Logo: phone emoji in a teal circle (`#E0F7FA`), 80×80
+- Title: "CallCopilot" (30px bold) + subtitle "通话助手 · Your Call Assistant" (14px gray)
+- White card with shadow containing a multiline `TextInput` for the goal
+- 6 preset chips in a 2-column flex-wrap grid — tap fills the input
+- "开始通话 / Start Call" button — disabled (opacity 0.35) until input is non-empty
+- Tip text at bottom explaining the app
+- On press: `router.push({ pathname: '/call', params: { goal } })`
 
-The component:
-1. Reads `colorScheme` with `useColorScheme()`
-2. Wraps everything in `<ThemeProvider>` — toggles between `DarkTheme` / `DefaultTheme` from @react-navigation
-3. Creates a `<Stack>` with two screens:
-   - `(tabs)`: header hidden (tabs have their own chrome)
-   - `modal`: `presentation: 'modal'`, title "Modal"
-4. Renders `<StatusBar style="auto">` (adapts automatically)
-5. Side-effect import of `react-native-reanimated` is required for reanimated to initialize
-
----
-
-### Tab Layout — `app/(tabs)/_layout.tsx`
-
-Creates a bottom tab navigator with:
-- `tabBarActiveTintColor`: from `Colors[colorScheme].tint`
-- `headerShown: false`
-- `tabBarButton: HapticTab` — replaces all tab buttons with the haptic-feedback version
-
-Two tabs:
-1. **Home** (`index`) — icon `house.fill`
-2. **Explore** (`explore`) — icon `paperplane.fill`
+**Preset goals:**
+| Chinese | English (stored as goal) |
+|---|---|
+| 更改垃圾桶大小 | I want to change my garbage bin size. |
+| 银行账户问题 | I have a question about my bank account. |
+| 预约医生 | I want to schedule a doctor appointment. |
+| 账单问题 | I have a question about my bill. |
+| 更改地址 | I need to update my address. |
+| 取消服务 | I want to cancel my service. |
 
 ---
 
-### Home Screen — `app/(tabs)/index.tsx`
+### Call Screen — `app/call.tsx`
 
-Renders a `ParallaxScrollView` with the React logo image as the header (light `#A1CEDC`, dark `#1D3D47`).
+The main screen. All live interaction happens here.
 
-Content sections:
-1. `ThemedText type="title"` "Welcome!" + `HelloWave` component side by side
-2. A `Link href="/modal"` with a context menu:
-   - `Link.Trigger` wraps the "Step 2: Explore" subtitle — tap opens modal, long-press shows menu
-   - `Link.Menu` contains actions: "Action", "Share", and a nested "More" submenu with destructive "Delete"
-3. Step 3 text explaining `npm run reset-project`
+**Layout (top to bottom):**
+1. **Header** — red "结束" button (left), goal text truncated (center), placeholder view (right, for balance)
+2. **ScrollView** — auto-scrolls to bottom on new entry or loading
+3. **Recording banner** — red bar shown only while recording: pulsing dot + "正在录音… Recording"
+4. **Input bar** — mic button + TextInput + send button
 
-Developer tools key hint is `Platform.select`-driven: `cmd+d` iOS, `cmd+m` Android, `F12` web.
+**Empty state:** ear emoji 👂 + "准备好了 / Ready" + instructions in Chinese and English
 
----
+**Each conversation entry (`EntryView`):**
+- Agent bubble (white card, gray border): "📞 客服说 / Agent said:" label + the typed/transcribed text
+- 5 response section cards stacked below
 
-### Explore Screen — `app/(tabs)/explore.tsx`
+**Response section cards (`SectionCard`):**
 
-Renders a `ParallaxScrollView` with a large `IconSymbol` (`chevron.left.forwardslash.chevron.right`, size 310, gray `#808080`) as the header (light `#D0D0D0`, dark `#353636`).
-
-Title "Explore" uses `fontFamily: Fonts.rounded`.
-
-Five `Collapsible` sections:
-1. **File-based routing** — points to the two files and layout; links to expo-router docs
-2. **Android, iOS, and web support** — how to open web (press `w`)
-3. **Images** — `@2x`/`@3x` density suffixes; shows react-logo.png; links to RN images docs
-4. **Light and dark mode components** — explains `useColorScheme()`; links to expo color themes docs
-5. **Animations** — mentions `HelloWave` and reanimated; iOS-only text about parallax scroll view
-
----
-
-### Modal Screen — `app/modal.tsx`
-
-Simple centered screen:
-- `ThemedText type="title"` "This is a modal"
-- `Link href="/" dismissTo` — navigates home AND dismisses the modal
-
----
-
-## Component Reference
-
-### `ParallaxScrollView` — `components/parallax-scroll-view.tsx`
-
-**Props**: `children`, `headerImage: ReactElement`, `headerBackgroundColor: { dark: string; light: string }`
-
-```
-HEADER_HEIGHT = 250
-```
-
-Uses `useAnimatedRef<Animated.ScrollView>()` + `useScrollOffset(scrollRef)` to track scroll position in a shared value (runs on UI thread via reanimated).
-
-`useAnimatedStyle` computes the header's transform at every scroll tick:
-- `translateY`: interpolates scroll `[-250, 0, 250]` → `[-125, 0, 187.5]`
-  - Pulling down (negative scroll): header moves up by half the pull distance
-  - Scrolling up (positive scroll): header moves down 75% of scroll distance
-- `scale`: interpolates `[-250, 0, 250]` → `[2, 1, 1]`
-  - Pulling down zooms the header in (scale 2x at max pull)
-
-The `Animated.ScrollView` uses `scrollEventThrottle={16}` (~60fps updates).
-
----
-
-### `ThemedText` — `components/themed-text.tsx`
-
-Thin wrapper around RN `Text`. Resolves color via `useThemeColor` using `lightColor`/`darkColor` props (if provided) or falls back to `Colors[theme].text`.
-
-**`type` prop styles:**
-
-| type | fontSize | lineHeight | fontWeight | color |
-|---|---|---|---|---|
-| `default` | 16 | 24 | — | theme text |
-| `defaultSemiBold` | 16 | 24 | 600 | theme text |
-| `title` | 32 | 32 | bold | theme text |
-| `subtitle` | 20 | — | bold | theme text |
-| `link` | 16 | 30 | — | `#0a7ea4` hardcoded |
-
----
-
-### `ThemedView` — `components/themed-view.tsx`
-
-Thin wrapper around RN `View`. Sets `backgroundColor` from `useThemeColor` (falls back to `Colors[theme].background`). Accepts optional `lightColor`/`darkColor` overrides.
-
----
-
-### `HapticTab` — `components/haptic-tab.tsx`
-
-Replaces the default tab bar button. Wraps `PlatformPressable` from `@react-navigation/elements`. On `onPressIn`, if `process.env.EXPO_OS === 'ios'`, fires `Haptics.impactAsync(ImpactFeedbackStyle.Light)`. Then calls the original `props.onPressIn`. All other props are passed through.
-
----
-
-### `HelloWave` — `components/hello-wave.tsx`
-
-An `Animated.Text` that renders 👋 with an auto-playing CSS-like animation using reanimated v4's `animationName` API:
-```js
-animationName: { '50%': { transform: [{ rotate: '25deg' }] } },
-animationIterationCount: 4,
-animationDuration: '300ms',
-```
-The emoji rotates 25° at the midpoint, 4 times, each cycle 300ms. Plays on mount, no interactivity.
-
----
-
-### `ExternalLink` — `components/external-link.tsx`
-
-Wraps expo-router `Link` with `target="_blank"`. On native (`EXPO_OS !== 'web'`), intercepts `onPress`, prevents default behavior, and opens the URL in an in-app browser via `expo-web-browser`'s `openBrowserAsync` with `presentationStyle: AUTOMATIC`. On web, behaves like a normal `<a target="_blank">`.
-
----
-
-### `Collapsible` — `components/ui/collapsible.tsx`
-
-**Props**: `children`, `title: string`
-
-Internal `isOpen` state, toggled via `TouchableOpacity`. Shows a `chevron.right` icon rotated 90° when open. Uses inline `transform: [{ rotate: isOpen ? '90deg' : '0deg' }]`. Children are conditionally rendered (not animated). Layout: `flexDirection: 'row'` for the heading; children indented `marginLeft: 24`.
-
----
-
-### `IconSymbol` — platform-split component
-
-**iOS** (`icon-symbol.ios.tsx`): Uses `SymbolView` from `expo-symbols` (native SF Symbols). Renders a view with `width/height = size`, `tintColor = color`, `resizeMode: "scaleAspectFit"`. Supports `weight` prop (`regular` by default).
-
-**Android/Web** (`icon-symbol.tsx`): Uses `MaterialIcons` from `@expo/vector-icons`. Name is looked up in the `MAPPING` constant:
-
-```ts
-const MAPPING = {
-  'house.fill':                          'home',
-  'paperplane.fill':                     'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right':                       'chevron-right',
-};
-```
-
-The `weight` prop is accepted in the type signature but ignored (no equivalent in MaterialIcons). Adding a new icon requires adding an entry to this mapping.
-
----
-
-## Constants — `constants/theme.ts`
-
-### `Colors`
-
-```ts
-Colors.light = { text: '#11181C', background: '#fff', tint: '#0a7ea4', icon: '#687076', tabIconDefault: '#687076', tabIconSelected: '#0a7ea4' }
-Colors.dark  = { text: '#ECEDEE', background: '#151718', tint: '#fff', icon: '#9BA1A6', tabIconDefault: '#9BA1A6', tabIconSelected: '#fff' }
-```
-
-### `Fonts`
-
-Platform-selected font family strings:
-
-| key | iOS | Web | Android (default) |
+| Section | Background | Left border accent | Bold text? |
 |---|---|---|---|
-| `sans` | `system-ui` | Full system-ui stack | `normal` |
-| `serif` | `ui-serif` | Georgia stack | `serif` |
-| `rounded` | `ui-rounded` | SF Pro Rounded stack | `normal` |
-| `mono` | `ui-monospace` | SFMono-Regular stack | `monospace` |
+| 理解 / Understanding | `#EFF6FF` | `#3B82F6` blue | No |
+| 翻译 / Translation | `#F0FDF4` | `#22C55E` green | No |
+| 下一步建议 / What to Do Next | `#FFF7ED` | `#F97316` orange | No |
+| 推荐回复 / Suggested Reply | `#F0FDFA` | `#14B8A6` teal | Yes (16px 600) |
+| 补充说明 / Notes | `#F9FAFB` | `#6B7280` gray | No |
 
-`Fonts.rounded` is used in the Explore screen title to render in Apple's rounded system font on iOS.
+Notes section only renders if `entry.response.notes` is non-empty.
+
+**Input bar:**
+- 🎙️ mic button (teal circle) → tap to start recording, turns red while recording
+- ⏹ stop icon shown while recording; spinner shown while transcribing
+- TextInput — disabled while mic is busy
+- 发送 send button — disabled while loading or recording
+
+**Loading states shown in scroll area:**
+- "正在转录… Transcribing…" (after mic stopped, before transcript arrives)
+- "正在分析… Analyzing…" (after text sent, waiting for AI)
+
+---
+
+## Service Layer
+
+### `services/claude.ts`
+
+**Exports:**
+- `ParsedResponse` — interface `{ understanding, translation, nextStep, suggestedReply, notes? }`
+- `parseResponse(text: string): ParsedResponse` — extracts sections using bracket-header `indexOf` parsing
+- `sendCallMessage(apiKey, goal, messages): Promise<ParsedResponse>` — calls Groq chat API
+
+**API details:**
+- URL: `https://api.groq.com/openai/v1/chat/completions`
+- Auth: `Authorization: Bearer ${apiKey}`
+- Model: `llama-3.3-70b-versatile`
+- System prompt injected as `{ role: 'system', content: system }` prepended to messages array
+- Response path: `data.choices[0].message.content`
+
+**System prompt** instructs the AI to:
+- Act as a bilingual call copilot
+- Always respond in the strict 5-section bracket format
+- Handle IVR menus, identity verification, goal completion as special cases
+- Keep suggested replies short and speakable
+- Never give legal/financial advice
+
+---
+
+### `services/whisper.ts`
+
+**Exports:**
+- `transcribeAudio(apiKey, uri): Promise<string>` — sends audio file to Groq Whisper
+
+**API details:**
+- URL: `https://api.groq.com/openai/v1/audio/transcriptions`
+- Method: POST multipart/form-data
+- Model: `whisper-large-v3-turbo`
+- Language: `en`
+- File format: `audio/m4a` (expo-av default on iOS/Android)
+- Response path: `data.text`
 
 ---
 
 ## Hooks
 
-### `use-color-scheme` (native) — `hooks/use-color-scheme.ts`
+### `hooks/use-call-session.ts`
 
 ```ts
-export { useColorScheme } from 'react-native';
+useCallSession(goal: string) → { entries, isLoading, error, send }
 ```
 
-Simple re-export. Returns `'light'`, `'dark'`, or `null`.
+- `entries: CallEntry[]` — `{ id: string, agentText: string, response: ParsedResponse }`
+- `send(agentText)` — pushes user message to history ref, calls `sendCallMessage`, updates entries
+- `history` — `useRef<{role, content}[]>` — full conversation context sent on every API call
+- On error: pops the failed user message from history, sets `error` string
+- Reads `process.env.EXPO_PUBLIC_GROQ_API_KEY`
 
-### `use-color-scheme.web` (web override) — `hooks/use-color-scheme.web.ts`
+---
 
-Expo loads `.web.ts` files on web instead of the base `.ts` file. This version guards against SSR hydration mismatches:
-- `hasHydrated` starts as `false`; set to `true` on the first `useEffect` (client-only)
-- Before hydration: returns `'light'` (safe default for static rendering)
-- After hydration: returns the real `useRNColorScheme()` value
-
-This is required for `web: { output: "static" }` builds.
-
-### `use-theme-color` — `hooks/use-theme-color.ts`
+### `hooks/use-audio-recorder.ts`
 
 ```ts
-useThemeColor(props: { light?: string; dark?: string }, colorName: keyof Colors.light) → string
+useAudioRecorder(apiKey, onTranscript) → { state, error, toggle }
 ```
 
-Priority: `props[currentTheme]` (component override) → `Colors[currentTheme][colorName]` (global default).
+- `state: RecorderState` — `'idle' | 'recording' | 'transcribing'`
+- `toggle()` — starts recording if idle, stops + transcribes if recording
+- On stop: calls `transcribeAudio(apiKey, uri)`, passes result to `onTranscript` callback
+- Requests mic permission on first record attempt
+- Sets `allowsRecordingIOS: true` before recording, `false` after
+
+**Used in call screen:** `onTranscript` is wired to `send()` from `useCallSession` — transcript auto-sends directly to AI.
 
 ---
 
-## NPM Scripts
+## Environment Setup
 
-| Script | Command | Purpose |
-|---|---|---|
-| `start` | `expo start` | Start dev server (all platforms) |
-| `ios` | `expo start --ios` | Start + open iOS simulator |
-| `android` | `expo start --android` | Start + open Android emulator |
-| `web` | `expo start --web` | Start + open browser |
-| `lint` | `expo lint` | Run ESLint |
-| `reset-project` | `node ./scripts/reset-project.js` | Move current `app/` to `app-example/`, create blank `app/` |
-
----
-
-## TypeScript & Type Safety
-
-- `expo-env.d.ts` — auto-generated Expo type reference (gitignored, do not edit)
-- `.expo/types/router.d.ts` — auto-generated by `typedRoutes` experiment; augments `expo-router`'s `ExpoRouter.__routes` interface with the actual app routes, enabling type checking on `href` values at compile time
-
----
-
-## VSCode Setup
-
-- **`.vscode/settings.json`**: On save → auto-fix ESLint, organize imports, sort members
-- **`.vscode/extensions.json`**: Recommends `expo.vscode-expo-tools` (Expo VSCode extension)
-
----
-
-## Expo Dev Server Settings (`.expo/settings.json`)
-
-```json
-{ "hostType": "lan", "lanType": "ip", "dev": true, "minify": false, "urlRandomness": null, "https": false }
+**`.env.local`** (gitignored via `.env*.local` pattern):
+```
+EXPO_PUBLIC_GROQ_API_KEY=gsk_...
 ```
 
-LAN mode with IP-based URLs; dev mode on; no minification; no HTTPS. These are local dev preferences, gitignored.
+**To run:**
+```bash
+cd "/Users/spencerxu/Desktop/School/Cseed Project/CallCopilot"
+npx expo start
+```
+Open on iPhone via Expo Go (scan QR) or press `i` for iOS Simulator.
+
+**If you change `.env.local`:** stop Expo (`Ctrl+C`) and restart — env vars are baked in at startup.
 
 ---
 
-## Key Architectural Patterns
+## Current State (end of session 1)
 
-1. **Platform file splitting**: Expo resolves `.ios.tsx`, `.web.ts`, etc. at build time. Used for `IconSymbol` (native SF Symbols vs MaterialIcons) and `use-color-scheme` (SSR-safe web vs native).
+**Working:**
+- ✅ Goal Setup screen — goal input, preset chips, navigation to call screen
+- ✅ Call screen — full AI response with 5 colored section cards
+- ✅ Conversation context — full message history maintained across the session
+- ✅ Microphone recording — tap to record, tap to stop, auto-transcribes via Groq Whisper, auto-sends
+- ✅ Recording UI — red banner, red mic button, transcribing spinner, separate loading labels
+- ✅ Error handling — API errors and mic permission errors shown in red banner
+- ✅ Text input fallback — user can always type manually if mic quality is poor
 
-2. **Theme propagation**: React Navigation `ThemeProvider` at the root drives `DarkTheme`/`DefaultTheme`. Components opt in via `useColorScheme()` → `useThemeColor()` → `Colors[theme][key]`.
-
-3. **Reanimated v4 animation API**: `HelloWave` uses the declarative CSS-like `animationName` object syntax (new in reanimated v4). `ParallaxScrollView` uses the worklet-based `useAnimatedStyle` + `useScrollOffset` pattern (runs on UI thread).
-
-4. **New Architecture + React Compiler**: Both enabled. This means no bridge, direct JS↔Native via JSI, and automatic memoization. Avoid manual `useMemo`/`useCallback` unless profiling shows a need.
-
-5. **expo-router Link context menus**: `app/(tabs)/index.tsx` demonstrates the `Link.Trigger` / `Link.Preview` / `Link.Menu` / `Link.MenuAction` API for native context menus on long-press.
-
----
-
-## Current State
-
-This is a **fresh Expo scaffold**. No actual CallCopilot business logic exists yet. The screen content is all Expo template placeholder text ("Welcome!", "Step 1: Try it", etc.). The project is ready for feature development — the infrastructure (routing, theming, icons, animations) is fully set up.
-
-To build the actual app, `app/(tabs)/index.tsx` and `app/(tabs)/explore.tsx` should be replaced with real screens, and additional routes/screens added as needed.
+**Known limitations:**
+- iOS cannot access phone call audio directly — user must put call on speaker for mic to pick it up
+- No session persistence — history resets when app closes
+- No in-app API key settings — key lives in `.env.local` only
+- Light mode only — dark mode not implemented
 
 ---
 
-## Development Environment
+## Future Features (next session priorities)
 
-- **Device**: iPhone with Expo Go installed — app confirmed running via LAN QR code scan
-- **Simulator**: Xcode installed, iOS Simulator available (press `i` in Expo CLI)
-- **Dependencies**: `node_modules` installed in the Cseed Project directory
-- **Dev server**: Run `npx expo start` from the Cseed Project directory to start
+1. **Android continuous listen mode** — auto-loop recording in chunks without tapping each time
+2. **Copy to clipboard** on the "Suggested Reply" card so user can paste it somewhere
+3. **Haptic feedback** when AI response arrives
+4. **Session history** — save past calls, view them later
+5. **In-app API key settings screen** — so user doesn't need to edit `.env.local`
+6. **Dark mode** support
+7. **Onboarding flow** — first-launch explanation of how to use the app (speaker mode tip etc.)
 
 ---
 
 ## Claude Code Slash Commands
 
-Two custom slash commands are configured (in `.claude/commands/` and globally in `~/.claude/commands/`):
-
 | Command | Purpose |
 |---|---|
-| `/research` | Reads this COMPREHENSION.md in full and summarizes the current project state. Use at the start of every new session. |
-| `/wipe-plan` | Clears `Plan/PLAN.md` completely. Use when finished with a feature plan and ready to start the next one. |
+| `/research` | Reads this COMPREHENSION.md in full and summarizes current project state. Use at the start of every new session. |
+| `/wipe-plan` | Clears `Plan/PLAN.md` completely. Use when starting a fresh planning cycle. |
