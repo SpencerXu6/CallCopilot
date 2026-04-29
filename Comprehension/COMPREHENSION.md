@@ -6,6 +6,14 @@
 
 ---
 
+## Project Location & Repository
+
+- **Canonical working directory**: `/Users/spencerxu/Desktop/School/Cseed Project/CallCopilot`
+- **GitHub**: `https://github.com/SpencerXu6/CallCopilot` (branch: `main`)
+- **Note**: A copy also exists at `/Users/spencerxu/CallCopilot` — this is the original scaffold and is NOT the active project. All development happens in the Cseed Project directory above.
+
+---
+
 ## Technology Stack
 
 | Layer | Technology | Version |
@@ -88,6 +96,11 @@ Comprehension/
 
 Plan/
   PLAN.md              ← Planning document (empty placeholder)
+
+.claude/
+  commands/
+    research.md        ← /research slash command — reads COMPREHENSION.md to onboard a new agent
+    wipe-plan.md       ← /wipe-plan slash command — clears PLAN.md for a fresh planning session
 ```
 
 ---
@@ -382,3 +395,23 @@ LAN mode with IP-based URLs; dev mode on; no minification; no HTTPS. These are l
 This is a **fresh Expo scaffold**. No actual CallCopilot business logic exists yet. The screen content is all Expo template placeholder text ("Welcome!", "Step 1: Try it", etc.). The project is ready for feature development — the infrastructure (routing, theming, icons, animations) is fully set up.
 
 To build the actual app, `app/(tabs)/index.tsx` and `app/(tabs)/explore.tsx` should be replaced with real screens, and additional routes/screens added as needed.
+
+---
+
+## Development Environment
+
+- **Device**: iPhone with Expo Go installed — app confirmed running via LAN QR code scan
+- **Simulator**: Xcode installed, iOS Simulator available (press `i` in Expo CLI)
+- **Dependencies**: `node_modules` installed in the Cseed Project directory
+- **Dev server**: Run `npx expo start` from the Cseed Project directory to start
+
+---
+
+## Claude Code Slash Commands
+
+Two custom slash commands are configured (in `.claude/commands/` and globally in `~/.claude/commands/`):
+
+| Command | Purpose |
+|---|---|
+| `/research` | Reads this COMPREHENSION.md in full and summarizes the current project state. Use at the start of every new session. |
+| `/wipe-plan` | Clears `Plan/PLAN.md` completely. Use when finished with a feature plan and ready to start the next one. |
