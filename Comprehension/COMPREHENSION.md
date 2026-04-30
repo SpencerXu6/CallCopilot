@@ -4,7 +4,7 @@
 
 **CallCopilot** is a React Native / Expo mobile app for Chinese-speaking users making English phone calls in the United States. The user enters their goal (in Chinese or English), then either **types** or **records** what the customer service agent says. The AI responds instantly with a structured 5-section breakdown: plain Chinese understanding, Chinese translation, what to do next, an English reply they can read aloud, and optional notes.
 
-The app is **fully built and working** as of the end of the first build session. Core feature (text input + AI response) and microphone recording + Whisper transcription are both implemented and running.
+The app is **fully built and working** with a polished UI design system applied. Core feature (text input + AI response) and microphone recording + Whisper transcription are both implemented and running.
 
 ---
 
@@ -27,6 +27,7 @@ The app is **fully built and working** as of the end of the first build session.
 | Navigation | @react-navigation/native + bottom-tabs | ^7 |
 | Animations | react-native-reanimated | ~4.1.1 |
 | Audio recording | expo-av | SDK 54 compatible |
+| Gradients | expo-linear-gradient | SDK 54 compatible |
 | Icons (iOS) | expo-symbols (SF Symbols) | ~1.0.8 |
 | Icons (Android/Web) | @expo/vector-icons (MaterialIcons) | ^15.0.3 |
 | Language | TypeScript | ~5.9.2 |
@@ -44,6 +45,63 @@ The app is **fully built and working** as of the end of the first build session.
 - Same quality for translation/guidance tasks using Llama 3.3 70B
 - Whisper transcription is also free on Groq's tier
 - Switch back to Anthropic by changing the URL, auth header, and model name in `services/claude.ts`
+
+---
+
+## Design System
+
+The app uses a custom design system established in session 2. All styling lives in per-file `StyleSheet.create()` — there is no global CSS or NativeWind.
+
+### Color Palette
+
+| Token | Hex | Usage |
+|---|---|---|
+| Background | `#FFFFFF` | All screen backgrounds |
+| Slate-900 | `#0F172A` | Primary text, logo box |
+| Slate-700 | `#1E293B` | Body text in cards |
+| Slate-500 | `#64748B` | Secondary / subtitle text |
+| Slate-400 | `#94A3B8` | Placeholder, muted text |
+| Slate-100 | `#F1F5F9` | Borders |
+| Slate-50 | `#F8FAFC` | Input backgrounds, card fills |
+| Sky gradient | `#0EA5E9 → #0284C7` | Primary CTA, mic button, send button |
+| Orange gradient | `#FB923C → #F97316` | "结束 / End" button |
+| Red | `#EF4444` | Recording active mic button |
+
+### Gradients (expo-linear-gradient)
+- **Sky (primary action)**: `colors={['#0EA5E9', '#0284C7']}` `start={{ x:0, y:0 }}` `end={{ x:1, y:1 }}`
+- **Orange (destructive/end)**: `colors={['#FB923C', '#F97316']}` same direction
+- **Disabled state**: `colors={['#CBD5E1', '#CBD5E1']}` (flat gray)
+
+### Typography
+System fonts (SF Pro on iOS). No custom fonts installed yet.
+- Headings: `fontWeight: '600'`, `letterSpacing: -0.3` to `-0.8`
+- Body: `fontWeight: '400'`, `lineHeight: 22`
+- Labels / caps: `fontWeight: '700'`, `textTransform: 'uppercase'`, `letterSpacing: 0.8`
+
+### Shape & Shadow
+- Large cards: `borderRadius: 24–32`
+- Section cards: `borderRadius: 14`
+- Small buttons / chips: `borderRadius: 12–20`
+- Shadow spec: `shadowColor: '#000'`, `shadowOffset: {width:0, height:4}`, `shadowOpacity: 0.04`, `shadowRadius: 20`
+
+### Micro-interactions
+All tappable elements use `Pressable` with a functional style:
+```tsx
+style={({ pressed }) => [styles.base, pressed && styles.pressed]}
+// pressed style:
+pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] }
+```
+
+### Gradient Button Pattern
+Gradient buttons always wrap `LinearGradient` inside `Pressable`. The outer `Pressable` or a wrapper `View` carries `borderRadius` + `overflow: 'hidden'` so the gradient clips correctly on Android.
+```tsx
+<Pressable onPress={...} style={({ pressed }) => [styles.wrapper, pressed && styles.pressed]}>
+  <LinearGradient colors={['#0EA5E9','#0284C7']} style={styles.gradientInner}>
+    <Text>Label</Text>
+  </LinearGradient>
+</Pressable>
+// wrapper must have: borderRadius, overflow: 'hidden'
+```
 
 ---
 
@@ -74,7 +132,7 @@ components/
   (all original Expo scaffold components — unused by app screens, kept for future use)
 
 constants/
-  theme.ts             ← Colors + Fonts constants (still referenced)
+  theme.ts             ← Colors + Fonts constants (original scaffold, not used by redesigned screens)
 
 Comprehension/
   COMPREHENSION.md     ← This file
@@ -103,11 +161,11 @@ Stack (app/_layout.tsx)
 
 **User flow:**
 1. App opens → Goal Setup screen (`/`)
-2. User types goal OR taps a preset chip → taps "开始通话 / Start Call"
+2. User types goal OR taps a preset chip → taps the sky-blue "开始通话 / Start Call" gradient card
 3. Navigates to `/call?goal=...`
 4. User taps 🎙️ mic button (records agent speech) OR types manually → taps 发送
 5. AI responds with 5-section structured guidance
-6. User taps "结束" → back to Goal Setup
+6. User taps orange "结束" button → back to Goal Setup
 
 ---
 
@@ -115,16 +173,16 @@ Stack (app/_layout.tsx)
 
 ### Goal Setup Screen — `app/(tabs)/index.tsx`
 
-- `SafeAreaView` + `KeyboardAvoidingView` + `ScrollView`
-- Logo: phone emoji in a teal circle (`#E0F7FA`), 80×80
-- Title: "CallCopilot" (30px bold) + subtitle "通话助手 · Your Call Assistant" (14px gray)
-- White card with shadow containing a multiline `TextInput` for the goal
-- 6 preset chips in a 2-column flex-wrap grid — tap fills the input
-- "开始通话 / Start Call" button — disabled (opacity 0.35) until input is non-empty
-- Tip text at bottom explaining the app
-- On press: `router.push({ pathname: '/call', params: { goal } })`
+**Layout (top to bottom):**
+1. **Header row** — left: 36×36 Slate-900 rounded square logo box with 📞 + "CallCopilot" 20px semibold; right: 40×40 rounded-full settings button (Slate-50 bg, Slate-100 border)
+2. **Hero section** — 36px tight headline "打好每一个英文电话" (Slate-900) + 17px Slate-500 subtitle, `paddingHorizontal: 28`
+3. **Goal input card** — white card, `borderRadius: 24`, Slate-100 border, 0.04 shadow; title + subtitle + `TextInput` with Slate-50 background
+4. **Presets label** — "常见任务" 18px semibold
+5. **Horizontal-scrolling preset chips** — `ScrollView horizontal`, each chip is 140px min-width, Slate-50 bg, Slate-100 border, `borderRadius: 20`; active state: EFF6FF bg + `#0EA5E9` border
+6. **Start Call gradient card** — full-width sky-blue `LinearGradient` inside `Pressable`; `borderRadius: 32`; left stack with label + 24px title; right: 48×48 glassmorphic icon box (`rgba(255,255,255,0.15)`, `borderRadius: 16`); disabled at `opacity: 0.35`
+7. **Tip text** — Slate-400, centered
 
-**Preset goals:**
+**Preset goals (stored as English, displayed in Chinese):**
 | Chinese | English (stored as goal) |
 |---|---|
 | 更改垃圾桶大小 | I want to change my garbage bin size. |
@@ -138,23 +196,21 @@ Stack (app/_layout.tsx)
 
 ### Call Screen — `app/call.tsx`
 
-The main screen. All live interaction happens here.
-
 **Layout (top to bottom):**
-1. **Header** — red "结束" button (left), goal text truncated (center), placeholder view (right, for balance)
+1. **Header** — orange gradient "结束" pill (left), goal text truncated (center), placeholder `View` (right, `width: 60` to balance layout)
 2. **ScrollView** — auto-scrolls to bottom on new entry or loading
-3. **Recording banner** — red bar shown only while recording: pulsing dot + "正在录音… Recording"
+3. **Recording banner** — red bar (`#FEF2F2` bg, `#FECACA` border) shown only while recording: pulsing dot + Chinese/English label
 4. **Input bar** — mic button + TextInput + send button
 
-**Empty state:** ear emoji 👂 + "准备好了 / Ready" + instructions in Chinese and English
+**Empty state:** 80×80 Slate-50 circle with 👂 + "准备好了 / Ready" headline + instruction text
 
 **Each conversation entry (`EntryView`):**
-- Agent bubble (white card, gray border): "📞 客服说 / Agent said:" label + the typed/transcribed text
-- 5 response section cards stacked below
+- Agent bubble (white card, `borderRadius: 20`, Slate-100 border, 0.04 shadow): uppercase "客服说 / AGENT SAID" label + the typed/transcribed text
+- 5 response section cards stacked below with `gap: 6`
 
 **Response section cards (`SectionCard`):**
 
-| Section | Background | Left border accent | Bold text? |
+| Section | Background | Left border accent | Bold? |
 |---|---|---|---|
 | 理解 / Understanding | `#EFF6FF` | `#3B82F6` blue | No |
 | 翻译 / Translation | `#F0FDF4` | `#22C55E` green | No |
@@ -162,17 +218,16 @@ The main screen. All live interaction happens here.
 | 推荐回复 / Suggested Reply | `#F0FDFA` | `#14B8A6` teal | Yes (16px 600) |
 | 补充说明 / Notes | `#F9FAFB` | `#6B7280` gray | No |
 
-Notes section only renders if `entry.response.notes` is non-empty.
+Notes section only renders if `entry.response.notes` is non-empty. All section cards use `borderRadius: 14`.
 
 **Input bar:**
-- 🎙️ mic button (teal circle) → tap to start recording, turns red while recording
-- ⏹ stop icon shown while recording; spinner shown while transcribing
-- TextInput — disabled while mic is busy
-- 发送 send button — disabled while loading or recording
+- 🎙️ mic button (48×48, sky-blue `LinearGradient` circle) → tap to start, turns red (`#EF4444`) while recording, shows spinner while transcribing
+- TextInput — Slate-50 bg, Slate-100 border, `borderRadius: 20`, disabled while mic is busy
+- 发送 send button — sky-blue gradient pill; grays out (`#CBD5E1`) when disabled
 
-**Loading states shown in scroll area:**
-- "正在转录… Transcribing…" (after mic stopped, before transcript arrives)
-- "正在分析… Analyzing…" (after text sent, waiting for AI)
+**Loading states:**
+- "正在转录… Transcribing…" after mic stop
+- "正在分析… Analyzing…" while waiting for AI
 
 ---
 
@@ -266,34 +321,37 @@ Open on iPhone via Expo Go (scan QR) or press `i` for iOS Simulator.
 
 ---
 
-## Current State (end of session 1)
+## Current State (end of session 2)
 
 **Working:**
-- ✅ Goal Setup screen — goal input, preset chips, navigation to call screen
+- ✅ Goal Setup screen — goal input, horizontal-scroll preset chips, gradient start card
 - ✅ Call screen — full AI response with 5 colored section cards
 - ✅ Conversation context — full message history maintained across the session
 - ✅ Microphone recording — tap to record, tap to stop, auto-transcribes via Groq Whisper, auto-sends
 - ✅ Recording UI — red banner, red mic button, transcribing spinner, separate loading labels
 - ✅ Error handling — API errors and mic permission errors shown in red banner
 - ✅ Text input fallback — user can always type manually if mic quality is poor
+- ✅ Design system — white/Slate palette, sky-blue + orange gradients, 0.04 shadow, `borderRadius: 14–32`, press micro-interactions
 
 **Known limitations:**
 - iOS cannot access phone call audio directly — user must put call on speaker for mic to pick it up
 - No session persistence — history resets when app closes
 - No in-app API key settings — key lives in `.env.local` only
 - Light mode only — dark mode not implemented
+- System fonts only — General Sans / Satoshi not yet installed
 
 ---
 
 ## Future Features (next session priorities)
 
-1. **Android continuous listen mode** — auto-loop recording in chunks without tapping each time
-2. **Copy to clipboard** on the "Suggested Reply" card so user can paste it somewhere
-3. **Haptic feedback** when AI response arrives
-4. **Session history** — save past calls, view them later
-5. **In-app API key settings screen** — so user doesn't need to edit `.env.local`
-6. **Dark mode** support
-7. **Onboarding flow** — first-launch explanation of how to use the app (speaker mode tip etc.)
+1. **Copy to clipboard** on the "Suggested Reply" card — use `expo-clipboard`
+2. **Custom fonts** — install `@expo-google-fonts/plus-jakarta-sans` (General Sans equivalent) and `@expo-google-fonts/inter` (Satoshi equivalent); load in `app/_layout.tsx` with `useFonts`
+3. **Android continuous listen mode** — auto-loop recording in chunks without tapping each time
+4. **Haptic feedback** when AI response arrives — use `expo-haptics`
+5. **Session history** — save past calls, view them later
+6. **In-app API key settings screen** — so user doesn't need to edit `.env.local`
+7. **Dark mode** support
+8. **Onboarding flow** — first-launch explanation of how to use the app (speaker mode tip etc.)
 
 ---
 

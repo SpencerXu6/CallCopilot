@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const PRESETS = [
   { zh: '更改垃圾桶大小', en: 'I want to change my garbage bin size.' },
@@ -30,6 +31,8 @@ export default function HomeScreen() {
     router.push({ pathname: '/call', params: { goal: trimmed } });
   };
 
+  const canStart = goal.trim().length > 0;
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -39,21 +42,37 @@ export default function HomeScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
+
+          {/* Header */}
           <View style={styles.header}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoEmoji}>📞</Text>
+            <View style={styles.logoRow}>
+              <View style={styles.logoBox}>
+                <Text style={styles.logoIcon}>📞</Text>
+              </View>
+              <Text style={styles.logoName}>CallCopilot</Text>
             </View>
-            <Text style={styles.appName}>CallCopilot</Text>
-            <Text style={styles.appSub}>通话助手 · Your Call Assistant</Text>
+            <Pressable
+              style={({ pressed }) => [styles.profileBtn, pressed && styles.pressed]}>
+              <Text style={styles.profileIcon}>⚙️</Text>
+            </Pressable>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>您想完成什么任务？</Text>
-            <Text style={styles.cardSub}>What do you need help with on this call?</Text>
+          {/* Hero */}
+          <View style={styles.hero}>
+            <Text style={styles.heroTitle}>打好每一个{'\n'}英文电话</Text>
+            <Text style={styles.heroSub}>
+              输入您的通话目标，AI 实时翻译{'\n'}并提供回复建议
+            </Text>
+          </View>
+
+          {/* Goal Input Card */}
+          <View style={styles.inputCard}>
+            <Text style={styles.inputCardTitle}>您想完成什么？</Text>
+            <Text style={styles.inputCardSub}>What do you need help with on this call?</Text>
             <TextInput
               style={styles.textInput}
               placeholder="例如：我想把垃圾桶从大号换成小号..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#94A3B8"
               value={goal}
               onChangeText={setGoal}
               multiline
@@ -62,36 +81,63 @@ export default function HomeScreen() {
             />
           </View>
 
-          <Text style={styles.presetsTitle}>常见任务 / Common Tasks</Text>
-          <View style={styles.presetGrid}>
+          {/* Presets */}
+          <View style={styles.presetsHeader}>
+            <Text style={styles.presetsTitle}>常见任务</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.presetsScroll}
+            style={styles.presetsRow}>
             {PRESETS.map(p => {
               const active = goal === p.en;
               return (
                 <Pressable
                   key={p.zh}
-                  style={[styles.presetChip, active && styles.presetChipActive]}
+                  style={({ pressed }) => [
+                    styles.presetCard,
+                    active && styles.presetCardActive,
+                    pressed && styles.pressed,
+                  ]}
                   onPress={() => setGoal(p.en)}>
-                  <Text style={[styles.presetZh, active && styles.presetTextActive]}>{p.zh}</Text>
+                  <Text style={[styles.presetZh, active && styles.presetZhActive]}>{p.zh}</Text>
                   <Text
-                    style={[styles.presetEn, active && styles.presetTextActive]}
-                    numberOfLines={1}>
+                    style={[styles.presetEn, active && styles.presetEnActive]}
+                    numberOfLines={2}>
                     {p.en}
                   </Text>
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
 
+          {/* Start Call Gradient Card */}
           <Pressable
-            style={[styles.startBtn, !goal.trim() && styles.startBtnDisabled]}
             onPress={startCall}
-            disabled={!goal.trim()}>
-            <Text style={styles.startBtnText}>开始通话 / Start Call</Text>
+            disabled={!canStart}
+            style={({ pressed }) => [
+              styles.startWrapper,
+              !canStart && styles.startDisabled,
+              pressed && canStart && styles.pressed,
+            ]}>
+            <LinearGradient
+              colors={['#0EA5E9', '#0284C7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.startCard}>
+              <View>
+                <Text style={styles.startCardLabel}>准备好了？</Text>
+                <Text style={styles.startCardTitle}>开始通话 / Start Call</Text>
+              </View>
+              <View style={styles.startIconBox}>
+                <Text style={styles.startIconEmoji}>📞</Text>
+              </View>
+            </LinearGradient>
           </Pressable>
 
-          <Text style={styles.tip}>
-            💡 开始后，输入客服说的话，AI 会实时提供翻译和建议
-          </Text>
+          <Text style={styles.tip}>💡 通话时将手机置于免提模式效果更佳</Text>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -101,138 +147,209 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
-  flex: {
-    flex: 1,
-  },
+  flex: { flex: 1 },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
+  pressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.97 }],
+  },
+
+  // Header
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 48,
-    paddingBottom: 32,
+    justifyContent: 'space-between',
+    paddingHorizontal: 28,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#E0F7FA',
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
-  logoEmoji: {
-    fontSize: 36,
-  },
-  appName: {
-    fontSize: 30,
-    fontWeight: '700',
+  logoIcon: { fontSize: 18 },
+  logoName: {
+    fontSize: 20,
+    fontWeight: '600',
     color: '#0F172A',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
-  appSub: {
-    fontSize: 14,
+  profileBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileIcon: { fontSize: 18 },
+
+  // Hero
+  hero: {
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 32,
+  },
+  heroTitle: {
+    fontSize: 36,
+    fontWeight: '600',
+    color: '#0F172A',
+    lineHeight: 40,
+    letterSpacing: -0.8,
+  },
+  heroSub: {
+    fontSize: 17,
     color: '#64748B',
-    marginTop: 4,
+    lineHeight: 26,
+    marginTop: 12,
+    maxWidth: 280,
+    fontWeight: '400',
   },
-  card: {
+
+  // Input card
+  inputCard: {
     marginHorizontal: 20,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
     elevation: 3,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  inputCardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+    marginBottom: 2,
+  },
+  inputCardSub: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 14,
+    fontWeight: '400',
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 15,
+    color: '#0F172A',
+    minHeight: 88,
+    lineHeight: 22,
+    backgroundColor: '#F8FAFC',
+  },
+
+  // Presets
+  presetsHeader: {
+    paddingHorizontal: 28,
+    marginBottom: 12,
+  },
+  presetsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+  },
+  presetsRow: {
     marginBottom: 24,
   },
-  cardTitle: {
-    fontSize: 18,
+  presetsScroll: {
+    paddingLeft: 20,
+    paddingRight: 8,
+    gap: 10,
+  },
+  presetCard: {
+    minWidth: 140,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    borderRadius: 20,
+    padding: 16,
+  },
+  presetCardActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#0EA5E9',
+  },
+  presetZh: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 4,
   },
-  cardSub: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 14,
-  },
-  textInput: {
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
-    color: '#0F172A',
-    minHeight: 90,
-    lineHeight: 22,
-  },
-  presetsTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    marginLeft: 20,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  presetGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    marginBottom: 28,
-  },
-  presetChip: {
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    margin: 4,
-    backgroundColor: '#FFFFFF',
-    maxWidth: '47%',
-  },
-  presetChipActive: {
-    borderColor: '#0a7ea4',
-    backgroundColor: '#EFF6FF',
-  },
-  presetZh: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
+  presetZhActive: { color: '#0284C7' },
   presetEn: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
+    lineHeight: 16,
+    fontWeight: '400',
   },
-  presetTextActive: {
-    color: '#0a7ea4',
-  },
-  startBtn: {
+  presetEnActive: { color: '#0EA5E9' },
+
+  // Start card
+  startWrapper: {
     marginHorizontal: 20,
-    backgroundColor: '#0a7ea4',
-    borderRadius: 14,
-    paddingVertical: 16,
+    marginBottom: 24,
+    borderRadius: 32,
+    overflow: 'hidden',
+  },
+  startDisabled: { opacity: 0.35 },
+  startCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    padding: 24,
   },
-  startBtnDisabled: {
-    opacity: 0.35,
+  startCardLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
   },
-  startBtnText: {
-    fontSize: 17,
-    fontWeight: '700',
+  startCardTitle: {
+    fontSize: 24,
+    fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: -0.4,
   },
+  startIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startIconEmoji: { fontSize: 22 },
+
+  // Tip
   tip: {
     fontSize: 13,
     color: '#94A3B8',
     textAlign: 'center',
     paddingHorizontal: 32,
     lineHeight: 20,
+    fontWeight: '400',
   },
 });
