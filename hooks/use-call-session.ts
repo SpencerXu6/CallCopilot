@@ -9,7 +9,7 @@ export interface CallEntry {
 
 type HistoryMessage = { role: 'user' | 'assistant'; content: string };
 
-export function useCallSession(goal: string) {
+export function useCallSession(goal: string, language = 'Chinese') {
   const [entries, setEntries] = useState<CallEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function useCallSession(goal: string) {
     history.current.push({ role: 'user', content: agentText });
 
     try {
-      const parsed = await sendCallMessage(apiKey, goal, history.current);
+      const parsed = await sendCallMessage(apiKey, goal, history.current, language);
 
       const assistantContent = [
         `[理解 / Understanding]\n${parsed.understanding}`,
