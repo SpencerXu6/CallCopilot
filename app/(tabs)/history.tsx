@@ -14,6 +14,8 @@ import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { loadCallSessions, deleteCallSession, SavedSession } from '@/services/history';
 import { EntryView } from '@/components/call-entry';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { SideNav } from '@/components/side-nav';
 
 const LANGUAGE_FLAGS: Record<string, string> = {
   Chinese: '🇨🇳', Spanish: '🇪🇸', French: '🇫🇷',
@@ -78,6 +80,7 @@ export default function HistoryScreen() {
   const [sessions, setSessions] = useState<SavedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { isWide } = useBreakpoint();
 
   const fetchSessions = useCallback(async () => {
     if (!user) return;
@@ -112,65 +115,82 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.root, isWide && styles.rootWide]}>
+      {isWide && <SideNav />}
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <View style={styles.logoBox}>
-            <Text style={styles.logoIcon}>🕐</Text>
-          </View>
-          <View>
-            <Text style={styles.headerTitle}>Call History</Text>
-            <Text style={styles.headerSub}>{sessions.length} saved session{sessions.length !== 1 ? 's' : ''}</Text>
-          </View>
-        </View>
-      </View>
+      <SafeAreaView style={styles.safe} edges={isWide ? [] : ['top']}>
+        <View style={[styles.inner, isWide && styles.innerWide]}>
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#0EA5E9" />
-        </View>
-      ) : sessions.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIconBox}>
-            <Text style={styles.emptyEmoji}>📋</Text>
+          {/* Header */}
+          <View style={styles.header}>
+            {!isWide && (
+              <View style={styles.logoBox}>
+                <Text style={styles.logoIcon}>🕐</Text>
+              </View>
+            )}
+            <View>
+              <Text style={styles.headerTitle}>Call History</Text>
+              <Text style={styles.headerSub}>
+                {sessions.length} saved session{sessions.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.emptyTitle}>No calls yet</Text>
-          <Text style={styles.emptySub}>Your completed calls will appear here after you tap 结束 to end a session.</Text>
+
+          {loading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color="#0EA5E9" />
+            </View>
+          ) : sessions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconBox}>
+                <Text style={styles.emptyEmoji}>📋</Text>
+              </View>
+              <Text style={styles.emptyTitle}>No calls yet</Text>
+              <Text style={styles.emptySub}>
+                Your completed calls will appear here after you tap 结束 to end a session.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              contentContainerStyle={styles.list}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0EA5E9" />
+              }>
+              {sessions.map(session => (
+                <SessionCard
+                  key={session.id}
+                  session={session}
+                  onDelete={() => handleDelete(session.id)}
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0EA5E9" />
-          }>
-          {sessions.map(session => (
-            <SessionCard
-              key={session.id}
-              session={session}
-              onDelete={() => handleDelete(session.id)}
-            />
-          ))}
-        </ScrollView>
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#FFFFFF' },
+  rootWide: { flexDirection: 'row' },
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
 
+  inner: { flex: 1 },
+  innerWide: { maxWidth: 760, alignSelf: 'center', width: '100%' },
+
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 28,
     paddingTop: 16,
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   logoBox: {
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: '#0F172A',

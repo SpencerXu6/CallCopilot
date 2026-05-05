@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/hooks/use-auth';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 type Mode = 'signin' | 'signup';
 
@@ -27,6 +28,7 @@ export default function AuthScreen() {
   const [notice, setNotice] = useState('');
 
   const { signIn, signUp } = useAuth();
+  const { isWide } = useBreakpoint();
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -80,9 +82,10 @@ export default function AuthScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}>
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, isWide && styles.contentWide]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
+          <View style={[styles.inner, isWide && styles.innerWide]}>
 
           {/* Header */}
           <View style={styles.header}>
@@ -192,6 +195,7 @@ export default function AuthScreen() {
           <Text style={styles.footer}>
             Your data is stored securely. We never share your information.
           </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -202,6 +206,9 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   flex: { flex: 1 },
   content: { paddingBottom: 48 },
+  contentWide: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 48 },
+  inner: { width: '100%' },
+  innerWide: { maxWidth: 480, width: '100%' },
   pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
 
   // Header

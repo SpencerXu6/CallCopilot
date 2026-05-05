@@ -1,16 +1,19 @@
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, Text } from 'react-native';
+import { Platform, StyleSheet, Text, useWindowDimensions } from 'react-native';
 
 function TabIcon({ emoji, color }: { emoji: string; color: string }) {
   return <Text style={{ fontSize: 20, opacity: color === '#0F172A' ? 1 : 0.4 }}>{emoji}</Text>;
 }
 
 export default function TabLayout() {
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: isWide ? { display: 'none' } : styles.tabBar,
         tabBarActiveTintColor: '#0F172A',
         tabBarInactiveTintColor: '#94A3B8',
         tabBarLabelStyle: styles.tabLabel,

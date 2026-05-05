@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -17,6 +18,9 @@ function AuthGuard() {
     const current = segments[0] as string;
     const inAuth = current === 'auth';
     const inOnboarding = current === 'onboarding';
+
+    // On web, skip auth entirely — users access the app as guests
+    if (Platform.OS === 'web') return;
 
     if (!session && !inAuth) {
       router.replace('/auth' as never);

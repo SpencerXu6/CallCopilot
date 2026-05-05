@@ -18,6 +18,7 @@ import { useAudioRecorder } from '@/hooks/use-audio-recorder';
 import { useAuth } from '@/hooks/use-auth';
 import { saveCallSession } from '@/services/history';
 import { EntryView } from '@/components/call-entry';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 export default function CallScreen() {
   const { goal, language } = useLocalSearchParams<{ goal: string; language: string }>();
@@ -26,6 +27,7 @@ export default function CallScreen() {
   const [input, setInput] = useState('');
   const [saving, setSaving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const { isWide } = useBreakpoint();
 
   const { user } = useAuth();
   const apiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY ?? '';
@@ -68,6 +70,7 @@ export default function CallScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View style={[styles.centeredShell, isWide && styles.centeredShellWide]}>
 
       {/* Header */}
       <View style={styles.header}>
@@ -192,12 +195,15 @@ export default function CallScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  centeredShell: { flex: 1 },
+  centeredShellWide: { maxWidth: 800, alignSelf: 'center', width: '100%' },
   flex: { flex: 1 },
   pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
 
