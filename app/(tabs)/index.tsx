@@ -12,7 +12,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/hooks/use-auth';
 import { t, PRESET_EN } from '@/constants/i18n';
@@ -39,27 +38,27 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     emoji: '🌍',
     title: 'Choose your language',
-    body: 'Tap any language chip at the top. The AI will explain everything — translation, guidance, notes — in that language.',
+    body: 'Tap any language chip at the top. The AI will explain everything in that language.',
   },
   {
     emoji: '✍️',
     title: 'Enter your call goal',
-    body: 'Type what you need to accomplish on this call. Be specific — it helps the AI give you better guidance.',
+    body: 'Type what you need to accomplish. Be specific — it helps the AI give better guidance.',
   },
   {
     emoji: '⚡',
-    title: 'Use a preset task',
-    body: 'Tap any common task to fill your goal instantly. You can edit it after selecting.',
+    title: 'Use a quick start',
+    body: 'Tap any common task to fill your goal instantly. You can edit it after.',
   },
   {
     emoji: '📞',
     title: 'Start your call',
-    body: 'Tap the blue card to begin. Put your phone on speaker, then use the mic button to record what the agent says.',
+    body: 'Tap Start Call. Put your phone on speaker, then use the mic to record the agent.',
   },
   {
     emoji: '🕐',
     title: 'Review past calls',
-    body: 'Every call you complete is saved to the History tab so you can review what was said and what to do next time.',
+    body: 'Every completed call is saved to History so you can review it later.',
   },
 ];
 
@@ -142,13 +141,14 @@ export default function HomeScreen() {
       <Pressable
         key={en}
         style={({ pressed }) => [
-          styles.presetCard,
-          active && styles.presetCardActive,
+          styles.presetChip,
+          active && styles.presetChipActive,
           pressed && styles.pressed,
         ]}
         onPress={() => setGoal(en)}>
-        <Text style={[styles.presetZh, active && styles.presetZhActive]}>{presets[i] ?? en}</Text>
-        <Text style={[styles.presetEn, active && styles.presetEnActive]} numberOfLines={2}>{en}</Text>
+        <Text style={[styles.presetText, active && styles.presetTextActive]} numberOfLines={2}>
+          {presets[i] ?? en}
+        </Text>
       </Pressable>
     );
   });
@@ -166,109 +166,86 @@ export default function HomeScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
 
-            {/* Mobile header — hidden on wide (sidebar has logo) */}
             {!isWide && (
               <View style={styles.header}>
-                <View style={styles.logoRow}>
-                  <View style={styles.logoBox}>
-                    <Text style={styles.logoIcon}>📞</Text>
-                  </View>
-                  <Text style={styles.logoName}>CallCopilot</Text>
-                </View>
+                <Text style={styles.wordmark}>CallCopilot</Text>
                 <Pressable
                   onPress={handleSignOut}
-                  style={({ pressed }) => [styles.profileBtn, pressed && styles.pressed]}>
-                  <Text style={styles.profileIcon}>👤</Text>
+                  style={({ pressed }) => [styles.signOutBtn, pressed && styles.pressed]}>
+                  <Text style={styles.signOutText}>Sign Out</Text>
                 </Pressable>
               </View>
             )}
 
-            {/* Centering wrapper */}
             <View style={[styles.inner, isWide && styles.innerWide]}>
 
-              {/* Hero */}
               <View style={[styles.hero, isWide && styles.heroWide]}>
                 <Text style={[styles.heroTitle, isDesktop && styles.heroTitleLg]}>
                   {strings.heroTitle}
                 </Text>
-                <Text style={styles.heroSub}>
-                  {name ? `👋 ${name} — ` : ''}{strings.heroSub}
-                </Text>
+                {name ? (
+                  <Text style={styles.heroSub}>
+                    {name} — {strings.heroSub}
+                  </Text>
+                ) : (
+                  <Text style={styles.heroSub}>{strings.heroSub}</Text>
+                )}
               </View>
 
-              {/* Language */}
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{strings.myLanguage}</Text>
-              </View>
-              {isWide ? (
-                <View style={styles.langGrid}>{langChips}</View>
-              ) : (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.langScroll}
-                  style={styles.langRow}>
-                  {langChips}
-                </ScrollView>
-              )}
-
-              {/* Goal input */}
-              <View style={styles.inputCard}>
-                <Text style={styles.inputCardTitle}>{strings.goalTitle}</Text>
-                <Text style={styles.inputCardSub}>{strings.goalSub}</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder={strings.goalPlaceholder}
-                  placeholderTextColor="#94A3B8"
-                  value={goal}
-                  onChangeText={setGoal}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{strings.myLanguage}</Text>
+                {isWide ? (
+                  <View style={styles.langGrid}>{langChips}</View>
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.langScroll}>
+                    {langChips}
+                  </ScrollView>
+                )}
               </View>
 
-              {/* Presets */}
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{strings.commonTasks}</Text>
+              <View style={styles.section}>
+                <View style={styles.goalCard}>
+                  <TextInput
+                    style={styles.goalInput}
+                    placeholder={strings.goalPlaceholder}
+                    placeholderTextColor="#AEAEB2"
+                    value={goal}
+                    onChangeText={setGoal}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                </View>
               </View>
-              {isWide ? (
-                <View style={styles.presetsGrid}>{presetCards}</View>
-              ) : (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.presetsScroll}
-                  style={styles.presetsRow}>
-                  {presetCards}
-                </ScrollView>
-              )}
 
-              {/* Start call */}
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{strings.commonTasks}</Text>
+                {isWide ? (
+                  <View style={styles.presetsGrid}>{presetCards}</View>
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.presetsScroll}>
+                    {presetCards}
+                  </ScrollView>
+                )}
+              </View>
+
               <Pressable
                 onPress={startCall}
                 disabled={!canStart}
                 style={({ pressed }) => [
-                  styles.startWrapper,
-                  !canStart && styles.startDisabled,
+                  styles.ctaBtn,
+                  !canStart && styles.ctaBtnDisabled,
                   pressed && canStart && styles.pressed,
                 ]}>
-                <LinearGradient
-                  colors={['#0EA5E9', '#0284C7']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.startCard}>
-                  <View>
-                    <Text style={styles.startCardLabel}>{strings.ready}</Text>
-                    <Text style={styles.startCardTitle}>{strings.startCall}</Text>
-                  </View>
-                  <View style={styles.startIconBox}>
-                    <Text style={styles.startIconEmoji}>📞</Text>
-                  </View>
-                </LinearGradient>
+                <Text style={styles.ctaBtnText}>{strings.startCall}</Text>
               </Pressable>
 
-              <Text style={styles.tip}>{strings.tip}</Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -286,113 +263,93 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
+  root: { flex: 1, backgroundColor: '#F2F2F7' },
   rootWide: { flexDirection: 'row' },
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: '#F2F2F7' },
   flex: { flex: 1 },
   scroll: { paddingBottom: 48 },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  pressed: { opacity: 0.7 },
 
-  // Centering wrapper
   inner: { width: '100%' },
-  innerWide: { maxWidth: 720, alignSelf: 'center' },
+  innerWide: { maxWidth: 680, alignSelf: 'center' },
 
-  // Mobile header
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 28, paddingTop: 16, paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoBox: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: '#0F172A',
-    alignItems: 'center', justifyContent: 'center',
+  wordmark: { fontSize: 20, fontWeight: '700', color: '#000000', letterSpacing: -0.4 },
+  signOutBtn: { paddingVertical: 6, paddingHorizontal: 4 },
+  signOutText: { fontSize: 15, color: '#FF3B30', fontWeight: '500' },
+
+  hero: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 32 },
+  heroWide: { paddingTop: 48 },
+  heroTitle: {
+    fontSize: 34, fontWeight: '700', color: '#000000',
+    lineHeight: 40, letterSpacing: -0.5, marginBottom: 8,
   },
-  logoIcon: { fontSize: 18 },
-  logoName: { fontSize: 20, fontWeight: '600', color: '#0F172A', letterSpacing: -0.3 },
-  profileBtn: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#F8FAFC',
-    borderWidth: 1, borderColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center',
-  },
-  profileIcon: { fontSize: 18 },
+  heroTitleLg: { fontSize: 44, lineHeight: 50 },
+  heroSub: { fontSize: 15, color: '#6E6E73', lineHeight: 22 },
 
-  // Hero
-  hero: { paddingHorizontal: 28, paddingTop: 28, paddingBottom: 24 },
-  heroWide: { paddingTop: 48, paddingHorizontal: 28 },
-  heroTitle: { fontSize: 36, fontWeight: '600', color: '#0F172A', lineHeight: 40, letterSpacing: -0.8 },
-  heroTitleLg: { fontSize: 46, lineHeight: 52 },
-  heroSub: { fontSize: 14, color: '#94A3B8', marginTop: 8, fontWeight: '400', lineHeight: 20 },
-
-  sectionHeader: { paddingHorizontal: 28, marginBottom: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#0F172A', letterSpacing: -0.2 },
-
-  // Language — mobile scroll
-  langRow: { marginBottom: 24 },
-  langScroll: { paddingLeft: 20, paddingRight: 8, gap: 8 },
-
-  // Language — wide grid
-  langGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
-    marginBottom: 24, paddingHorizontal: 28,
+  section: { marginBottom: 24 },
+  sectionLabel: {
+    fontSize: 13, fontWeight: '600', color: '#6E6E73',
+    textTransform: 'uppercase', letterSpacing: 0.4,
+    paddingHorizontal: 20, marginBottom: 10,
   },
 
+  langScroll: { paddingHorizontal: 20, gap: 8 },
+  langGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20 },
   langChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#F1F5F9', borderRadius: 999,
+    paddingHorizontal: 14, paddingVertical: 9,
+    backgroundColor: '#FFFFFF', borderRadius: 999,
+    borderWidth: 1.5, borderColor: 'transparent',
   },
-  langChipActive: { backgroundColor: '#EFF6FF', borderColor: '#0EA5E9' },
-  langFlag: { fontSize: 16 },
-  langLabel: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-  langLabelActive: { color: '#0284C7' },
-
-  // Goal input
-  inputCard: {
-    marginHorizontal: 20, marginBottom: 28, backgroundColor: '#FFFFFF', borderRadius: 24,
-    padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04, shadowRadius: 20, elevation: 3,
-    borderWidth: 1, borderColor: '#F1F5F9',
+  langChipActive: {
+    backgroundColor: 'rgba(0,122,255,0.08)',
+    borderColor: '#007AFF',
   },
-  inputCardTitle: { fontSize: 18, fontWeight: '600', color: '#0F172A', letterSpacing: -0.2, marginBottom: 2 },
-  inputCardSub: { fontSize: 14, color: '#64748B', marginBottom: 14, fontWeight: '400' },
-  textInput: {
-    borderWidth: 1, borderColor: '#F1F5F9', borderRadius: 14,
-    padding: 14, fontSize: 15, color: '#0F172A',
-    minHeight: 88, lineHeight: 22, backgroundColor: '#F8FAFC',
+  langFlag: { fontSize: 15 },
+  langLabel: { fontSize: 14, fontWeight: '500', color: '#6E6E73' },
+  langLabelActive: { color: '#007AFF', fontWeight: '600' },
+
+  goalCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 14,
+    marginHorizontal: 20, overflow: 'hidden',
   },
-
-  // Presets — mobile scroll
-  presetsRow: { marginBottom: 24 },
-  presetsScroll: { paddingLeft: 20, paddingRight: 8, gap: 10 },
-
-  // Presets — wide grid
-  presetsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    marginBottom: 24, paddingHorizontal: 20,
+  goalInput: {
+    paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 17, color: '#000000',
+    minHeight: 96, lineHeight: 24,
   },
 
-  presetCard: {
-    minWidth: 140, backgroundColor: '#F8FAFC', borderWidth: 1,
-    borderColor: '#F1F5F9', borderRadius: 20, padding: 16,
+  presetsScroll: { paddingHorizontal: 20, gap: 8 },
+  presetsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20 },
+  presetChip: {
+    paddingHorizontal: 14, paddingVertical: 9,
+    backgroundColor: '#FFFFFF', borderRadius: 999,
+    borderWidth: 1.5, borderColor: 'transparent',
+    maxWidth: 220,
   },
-  presetCardActive: { backgroundColor: '#EFF6FF', borderColor: '#0EA5E9' },
-  presetZh: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 4 },
-  presetZhActive: { color: '#0284C7' },
-  presetEn: { fontSize: 11, color: '#64748B', lineHeight: 16, fontWeight: '400' },
-  presetEnActive: { color: '#0EA5E9' },
+  presetChipActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  presetText: { fontSize: 14, fontWeight: '500', color: '#000000' },
+  presetTextActive: { color: '#FFFFFF' },
 
-  // Start call
-  startWrapper: { marginHorizontal: 20, marginBottom: 24, borderRadius: 32, overflow: 'hidden' },
-  startDisabled: { opacity: 0.35 },
-  startCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 24,
+  ctaBtn: {
+    backgroundColor: '#007AFF',
+    borderRadius: 14,
+    marginHorizontal: 20,
+    paddingVertical: 17,
+    alignItems: 'center',
+    marginTop: 8,
   },
-  startCardLabel: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
-  startCardTitle: { fontSize: 24, fontWeight: '600', color: '#FFFFFF', letterSpacing: -0.4 },
-  startIconBox: {
-    width: 48, height: 48, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center',
-  },
-  startIconEmoji: { fontSize: 22 },
-
-  tip: { fontSize: 13, color: '#94A3B8', textAlign: 'center', paddingHorizontal: 32, lineHeight: 20 },
+  ctaBtnDisabled: { opacity: 0.35 },
+  ctaBtnText: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
 });

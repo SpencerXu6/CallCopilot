@@ -1,9 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, Text, useWindowDimensions } from 'react-native';
-
-function TabIcon({ emoji, color }: { emoji: string; color: string }) {
-  return <Text style={{ fontSize: 20, opacity: color === '#0F172A' ? 1 : 0.4 }}>{emoji}</Text>;
-}
+import { Platform, StyleSheet, useWindowDimensions } from 'react-native';
 
 export default function TabLayout() {
   const { width } = useWindowDimensions();
@@ -14,23 +10,18 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: isWide ? { display: 'none' } : styles.tabBar,
-        tabBarActiveTintColor: '#0F172A',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#8E8E93',
         tabBarLabelStyle: styles.tabLabel,
+        tabBarShowIcon: false,
       }}>
       <Tabs.Screen
         name="index"
-        options={{
-          title: 'HOME',
-          tabBarIcon: ({ color }) => <TabIcon emoji="🏠" color={color} />,
-        }}
+        options={{ title: 'Home' }}
       />
       <Tabs.Screen
         name="history"
-        options={{
-          title: 'HISTORY',
-          tabBarIcon: ({ color }) => <TabIcon emoji="🕐" color={color} />,
-        }}
+        options={{ title: 'History' }}
       />
     </Tabs>
   );
@@ -38,16 +29,16 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: 'rgba(255,255,255,0.98)',
-    borderTopColor: '#F1F5F9',
-    borderTopWidth: 1,
-    height: Platform.OS === 'ios' ? 84 : 64,
+    backgroundColor: 'rgba(242,242,247,0.94)',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#C6C6C8',
+    height: Platform.OS === 'ios' ? 83 : 60,
     paddingBottom: Platform.OS === 'ios' ? 28 : 8,
     paddingTop: 8,
   },
   tabLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.2,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0,
   },
 });

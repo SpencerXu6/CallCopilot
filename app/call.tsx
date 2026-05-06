@@ -12,7 +12,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useCallSession } from '@/hooks/use-call-session';
 import { useAudioRecorder } from '@/hooks/use-audio-recorder';
 import { useAuth } from '@/hooks/use-auth';
@@ -55,7 +54,7 @@ export default function CallScreen() {
       try {
         await saveCallSession(user.id, goal ?? '', lang, entries);
       } catch {
-        // silently fail — session save is best-effort
+        // best-effort save
       } finally {
         setSaving(false);
       }
@@ -70,244 +69,224 @@ export default function CallScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={[styles.centeredShell, isWide && styles.centeredShellWide]}>
+      <View style={[styles.shell, isWide && styles.shellWide]}>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          onPress={handleEnd}
-          disabled={saving}
-          style={({ pressed }) => [pressed && styles.pressed]}>
-          <LinearGradient
-            colors={['#FB923C', '#F97316']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.endBtn}>
+        <View style={styles.header}>
+          <Pressable
+            onPress={handleEnd}
+            disabled={saving}
+            style={({ pressed }) => [styles.endBtn, pressed && styles.pressed]}>
             {saving
-              ? <ActivityIndicator size="small" color="#FFFFFF" />
-              : <Text style={styles.endBtnText}>结束</Text>
+              ? <ActivityIndicator size="small" color="#FF3B30" />
+              : <Text style={styles.endBtnText}>End</Text>
             }
-          </LinearGradient>
-        </Pressable>
-        <Text style={styles.goalText} numberOfLines={1}>{goal}</Text>
-        <View style={styles.headerRight}>
+          </Pressable>
+          <Text style={styles.goalText} numberOfLines={1}>{goal}</Text>
           <View style={styles.langBadge}>
             <Text style={styles.langBadgeText}>{lang}</Text>
           </View>
         </View>
-      </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}
-        keyboardVerticalOffset={0}>
-        <ScrollView
-          ref={scrollRef}
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.flex}
+          keyboardVerticalOffset={0}>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
 
-          {entries.length === 0 && !isLoading && (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconBox}>
-                <Text style={styles.emptyEmoji}>👂</Text>
+            {entries.length === 0 && !isLoading && (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyCircle}>
+                  <Text style={styles.emptyEmoji}>👂</Text>
+                </View>
+                <Text style={styles.emptyTitle}>Ready</Text>
+                <Text style={styles.emptySub}>Tap the mic to record, or type below</Text>
               </View>
-              <Text style={styles.emptyTitle}>Ready</Text>
-              <Text style={styles.emptySub}>Tap the mic to record, or type below</Text>
-              <Text style={styles.emptySub}>点击麦克风录音，或直接输入文字</Text>
-            </View>
-          )}
-
-          {entries.map(entry => (
-            <EntryView key={entry.id} entry={entry} />
-          ))}
-
-          {(isLoading || isTranscribing) && (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator size="small" color="#0EA5E9" />
-              <Text style={styles.loadingText}>
-                {isTranscribing ? 'Transcribing…' : 'Analyzing…'}
-              </Text>
-            </View>
-          )}
-
-          {(error || recorderError) ? (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>⚠️ {error ?? recorderError}</Text>
-            </View>
-          ) : null}
-        </ScrollView>
-
-        {isRecording && (
-          <View style={styles.recordingBanner}>
-            <View style={styles.recordingDot} />
-            <Text style={styles.recordingText}>Recording — tap to stop</Text>
-          </View>
-        )}
-
-        {/* Input Bar */}
-        <View style={styles.inputBar}>
-          <Pressable
-            onPress={toggleRecorder}
-            disabled={isTranscribing || isLoading}
-            style={({ pressed }) => [pressed && styles.pressed]}>
-            {isRecording ? (
-              <View style={styles.micBtnRed}>
-                <Text style={styles.micIcon}>⏹</Text>
-              </View>
-            ) : (
-              <LinearGradient
-                colors={isTranscribing ? ['#CBD5E1', '#CBD5E1'] : ['#0EA5E9', '#0284C7']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.micBtn}>
-                {isTranscribing
-                  ? <ActivityIndicator size="small" color="#FFFFFF" />
-                  : <Text style={styles.micIcon}>🎙️</Text>
-                }
-              </LinearGradient>
             )}
-          </Pressable>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Type what the agent said…"
-            placeholderTextColor="#94A3B8"
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            multiline
-            editable={!micBusy}
-          />
+            {entries.map(entry => (
+              <EntryView key={entry.id} entry={entry} />
+            ))}
 
-          <Pressable
-            onPress={handleSend}
-            disabled={!canSend}
-            style={({ pressed }) => [pressed && canSend && styles.pressed]}>
-            <LinearGradient
-              colors={canSend ? ['#0EA5E9', '#0284C7'] : ['#CBD5E1', '#CBD5E1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.sendBtn}>
-              <Text style={styles.sendBtnText}>Send</Text>
-            </LinearGradient>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+            {(isLoading || isTranscribing) && (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#007AFF" />
+                <Text style={styles.loadingText}>
+                  {isTranscribing ? 'Transcribing…' : 'Analyzing…'}
+                </Text>
+              </View>
+            )}
+
+            {(error || recorderError) ? (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorText}>{error ?? recorderError}</Text>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          {isRecording && (
+            <View style={styles.recordingBanner}>
+              <View style={styles.recordingDot} />
+              <Text style={styles.recordingText}>Recording — tap mic to stop</Text>
+            </View>
+          )}
+
+          <View style={styles.inputBar}>
+            <Pressable
+              onPress={toggleRecorder}
+              disabled={isTranscribing || isLoading}
+              style={({ pressed }) => [
+                styles.micBtn,
+                isRecording && styles.micBtnActive,
+                (isTranscribing || isLoading) && styles.micBtnDisabled,
+                pressed && styles.pressed,
+              ]}>
+              {isTranscribing
+                ? <ActivityIndicator size="small" color="#007AFF" />
+                : <Text style={[styles.micIcon, isRecording && styles.micIconActive]}>
+                    {isRecording ? '⏹' : '🎙️'}
+                  </Text>
+              }
+            </Pressable>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Type what the agent said…"
+              placeholderTextColor="#AEAEB2"
+              value={input}
+              onChangeText={setInput}
+              onSubmitEditing={handleSend}
+              returnKeyType="send"
+              multiline
+              editable={!micBusy}
+            />
+
+            <Pressable
+              onPress={handleSend}
+              disabled={!canSend}
+              style={({ pressed }) => [
+                styles.sendBtn,
+                !canSend && styles.sendBtnDisabled,
+                pressed && canSend && styles.pressed,
+              ]}>
+              <Text style={[styles.sendBtnText, !canSend && styles.sendBtnTextDisabled]}>Send</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
-  centeredShell: { flex: 1 },
-  centeredShellWide: { maxWidth: 800, alignSelf: 'center', width: '100%' },
+  safe: { flex: 1, backgroundColor: '#F2F2F7' },
+  shell: { flex: 1 },
+  shellWide: { maxWidth: 800, alignSelf: 'center', width: '100%' },
   flex: { flex: 1 },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  pressed: { opacity: 0.7 },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F2F2F7',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#C6C6C8',
   },
   endBtn: {
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    minWidth: 60,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,59,48,0.10)',
+    minWidth: 56,
     alignItems: 'center',
-    overflow: 'hidden',
   },
-  endBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  endBtnText: { fontSize: 15, fontWeight: '600', color: '#FF3B30' },
   goalText: {
     flex: 1,
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: '#6E6E73',
     textAlign: 'center',
     marginHorizontal: 10,
     fontWeight: '500',
   },
-  headerRight: { alignItems: 'flex-end' },
   langBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(120,120,128,0.12)',
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
   },
-  langBadgeText: { fontSize: 11, fontWeight: '600', color: '#64748B' },
+  langBadgeText: { fontSize: 12, fontWeight: '600', color: '#6E6E73' },
 
-  scroll: { flex: 1 },
-  scrollContent: { paddingVertical: 20, paddingBottom: 12 },
+  scroll: { flex: 1, backgroundColor: '#F2F2F7' },
+  scrollContent: { paddingVertical: 24, paddingBottom: 12 },
 
   emptyState: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
-  emptyIconBox: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1, borderColor: '#F1F5F9',
+  emptyCircle: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
-  emptyEmoji: { fontSize: 36 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', color: '#0F172A', marginBottom: 10, letterSpacing: -0.3 },
-  emptySub: { fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 22 },
+  emptyEmoji: { fontSize: 32 },
+  emptyTitle: { fontSize: 20, fontWeight: '600', color: '#000000', marginBottom: 8, letterSpacing: -0.3 },
+  emptySub: { fontSize: 14, color: '#AEAEB2', textAlign: 'center', lineHeight: 22 },
 
   loadingRow: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', paddingVertical: 16, gap: 10,
   },
-  loadingText: { fontSize: 14, color: '#64748B', fontWeight: '500' },
+  loadingText: { fontSize: 14, color: '#6E6E73', fontWeight: '500' },
 
   errorBanner: {
     marginHorizontal: 16,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 14, padding: 14, marginBottom: 8,
-    borderWidth: 1, borderColor: '#FECACA',
+    backgroundColor: 'rgba(255,59,48,0.08)',
+    borderRadius: 12, padding: 14, marginBottom: 8,
   },
-  errorText: { fontSize: 14, color: '#DC2626', lineHeight: 20 },
+  errorText: { fontSize: 14, color: '#FF3B30', lineHeight: 20 },
 
   recordingBanner: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,59,48,0.06)',
     paddingVertical: 10, gap: 8,
-    borderTopWidth: 1, borderTopColor: '#FECACA',
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,59,48,0.2)',
   },
-  recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' },
-  recordingText: { fontSize: 13, color: '#EF4444', fontWeight: '600' },
+  recordingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FF3B30' },
+  recordingText: { fontSize: 13, color: '#FF3B30', fontWeight: '600' },
 
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end',
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1, borderTopColor: '#F1F5F9', gap: 10,
+    paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: '#F2F2F7',
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#C6C6C8',
+    gap: 8,
   },
   micBtn: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(120,120,128,0.12)',
     alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end',
   },
-  micBtnRed: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#EF4444',
-    alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end',
-  },
+  micBtnActive: { backgroundColor: 'rgba(255,59,48,0.12)' },
+  micBtnDisabled: { opacity: 0.4 },
   micIcon: { fontSize: 20 },
+  micIconActive: {},
   input: {
     flex: 1,
-    borderWidth: 1, borderColor: '#F1F5F9', borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 12,
-    fontSize: 15, color: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 11,
+    fontSize: 15, color: '#000000',
     maxHeight: 100, lineHeight: 22,
-    backgroundColor: '#F8FAFC',
   },
   sendBtn: {
-    borderRadius: 14,
-    paddingVertical: 12, paddingHorizontal: 18,
-    alignSelf: 'flex-end', overflow: 'hidden',
+    paddingHorizontal: 16, paddingVertical: 11,
+    backgroundColor: '#007AFF',
+    borderRadius: 20, alignSelf: 'flex-end',
   },
+  sendBtnDisabled: { backgroundColor: 'rgba(120,120,128,0.12)' },
   sendBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  sendBtnTextDisabled: { color: '#AEAEB2' },
 });

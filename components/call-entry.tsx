@@ -1,19 +1,24 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { CallEntry } from '@/hooks/use-call-session';
 
-type SectionCardProps = {
+type SectionProps = {
   label: string;
   content: string;
-  accent: string;
-  bg: string;
-  bold?: boolean;
+  highlight?: boolean;
+  muted?: boolean;
 };
 
-function SectionCard({ label, content, accent, bg, bold }: SectionCardProps) {
+function Section({ label, content, highlight, muted }: SectionProps) {
   return (
-    <View style={[styles.sectionCard, { backgroundColor: bg, borderLeftColor: accent }]}>
-      <Text style={[styles.sectionLabel, { color: accent }]}>{label}</Text>
-      <Text style={[styles.sectionContent, bold && styles.sectionContentBold]}>{content}</Text>
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>{label}</Text>
+      <Text style={[
+        styles.sectionContent,
+        highlight && styles.sectionContentHighlight,
+        muted && styles.sectionContentMuted,
+      ]}>
+        {content}
+      </Text>
     </View>
   );
 }
@@ -22,42 +27,39 @@ export function EntryView({ entry }: { entry: CallEntry }) {
   return (
     <View style={styles.entry}>
       <View style={styles.agentBubble}>
-        <Text style={styles.agentLabel}>AGENT SAID</Text>
         <Text style={styles.agentText}>{entry.agentText}</Text>
       </View>
-      <View style={styles.responseCards}>
-        <SectionCard
-          label="Understanding"
+
+      <View style={styles.responseCard}>
+        <Section
+          label="UNDERSTANDING"
           content={entry.response.understanding}
-          accent="#3B82F6"
-          bg="#EFF6FF"
         />
-        <SectionCard
-          label="Translation"
+        <View style={styles.divider} />
+        <Section
+          label="TRANSLATION"
           content={entry.response.translation}
-          accent="#22C55E"
-          bg="#F0FDF4"
         />
-        <SectionCard
-          label="What to Do Next"
+        <View style={styles.divider} />
+        <Section
+          label="WHAT TO DO NEXT"
           content={entry.response.nextStep}
-          accent="#F97316"
-          bg="#FFF7ED"
         />
-        <SectionCard
-          label="Suggested Reply"
+        <View style={styles.divider} />
+        <Section
+          label="SUGGESTED REPLY"
           content={entry.response.suggestedReply}
-          accent="#14B8A6"
-          bg="#F0FDFA"
-          bold
+          highlight
         />
         {entry.response.notes ? (
-          <SectionCard
-            label="Notes"
-            content={entry.response.notes}
-            accent="#6B7280"
-            bg="#F9FAFB"
-          />
+          <>
+            <View style={styles.divider} />
+            <Section
+              label="NOTES"
+              content={entry.response.notes}
+              muted
+            />
+          </>
         ) : null}
       </View>
     </View>
@@ -67,57 +69,61 @@ export function EntryView({ entry }: { entry: CallEntry }) {
 const styles = StyleSheet.create({
   entry: {
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 28,
   },
+
   agentBubble: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    backgroundColor: '#E5E5EA',
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 2,
-  },
-  agentLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#94A3B8',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    alignSelf: 'flex-start',
+    maxWidth: '86%',
   },
   agentText: {
     fontSize: 15,
-    color: '#0F172A',
+    color: '#000000',
     lineHeight: 22,
-    fontWeight: '400',
   },
-  responseCards: { gap: 6 },
-  sectionCard: {
-    borderLeftWidth: 3,
-    borderRadius: 14,
-    padding: 14,
+
+  responseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+
+  section: {
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E5E5EA',
+    marginHorizontal: 16,
   },
   sectionLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#AEAEB2',
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   sectionContent: {
     fontSize: 15,
-    color: '#1E293B',
+    color: '#000000',
     lineHeight: 22,
-    fontWeight: '400',
   },
-  sectionContentBold: {
-    fontWeight: '600',
+  sectionContentHighlight: {
     fontSize: 16,
-    color: '#0F172A',
+    fontWeight: '600',
+    color: '#007AFF',
+    lineHeight: 24,
+  },
+  sectionContentMuted: {
+    color: '#6E6E73',
+    fontSize: 14,
   },
 });

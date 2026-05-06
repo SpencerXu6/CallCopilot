@@ -290,26 +290,29 @@ const StorageAdapter = Platform.OS === 'web'
 
 ### Auth Screen — `app/auth.tsx`
 - **Native only** — web bypasses this screen entirely
-- White background, centered logo (64×64 dark rounded square)
-- Segmented tab switcher: **Log In** | **Sign Up** (Slate-50 bg, active tab white with shadow)
-- Fields: Email, Password, Confirm Password (sign-up only) — all Slate-50 bg, Slate-100 border, `borderRadius: 14`
-- Error box (red) and notice box (green) for feedback
-- Sky-blue gradient CTA button
-- On wide screens: card centered at `maxWidth: 480`, vertically centered on page
-- On sign-up success: sets `callcopilot_needs_onboarding = 'true'`, shows "check your email" notice
+- `#F2F2F7` background
+- Logo: 60×60 black rounded square with white "C" lettermark + "CallCopilot" wordmark below
+- Segmented control: `rgba(120,120,128,0.12)` bg, white active tab with subtle shadow — iOS-native feel
+- Fields: single white rounded card (`borderRadius: 12`), Email and Password rows separated by `#E5E5EA` hairline. No field labels — placeholders only
+- Error/notice: inline colored text below the field card, no box
+- Solid `#007AFF` CTA button, `borderRadius: 12`, 17px semibold
+- On wide screens: inner content constrained to `maxWidth: 400`, centered
+- On sign-up success: sets `callcopilot_needs_onboarding = 'true'`, shows green notice text inline
 
 ---
 
 ### Onboarding Screen — `app/onboarding.tsx`
 
-4 steps, progress bar at top, skippable at every step.
+4 steps, 2px progress bar at top (`#007AFF` fill on `#E5E5EA` track), skippable at every step.
 
 | Step | Content |
 |---|---|
-| 0 — Welcome | Sky-blue gradient header with logo + tagline; feature list (record, understand, reply); "Get Started" button |
-| 1 — Name | "What should we call you?" — large text input, skip link |
-| 2 — Language | "What's your primary language?" — 2×4 grid of tiles with flag, label in native script, English name, checkmark when selected |
-| 3 — Use Case | 5 options with radio buttons: Healthcare, Banking & Finance, Utilities & Home, Customer Service, Other |
+| 0 — Welcome | `#F2F2F7` bg. Black "C" logo mark, 34px bold title, body text, 3-item feature list (dot + title + desc). Solid `#007AFF` "Get Started" button pinned to bottom |
+| 1 — Name | Large 34px title, white field card with single `TextInput`, Continue + Skip buttons |
+| 2 — Language | 2×4 grid of white tiles (`borderRadius: 14`). Active tile: `#007AFF` border + `rgba(0,122,255,0.06)` fill + blue label text. No checkmark badge |
+| 3 — Use Case | White grouped card, 5 rows with label + sub text + radio circle. Rows separated by hairline dividers. Radio: `#007AFF` when active |
+
+**Removed from onboarding:** gradient welcome header, emoji icons on use-case rows, "Step N of 3" eyebrow text (replaced by progress bar), checkmark badge on language tiles.
 
 On completion: saves `callcopilot_name`, `callcopilot_language`, `callcopilot_use_case`, `callcopilot_needs_onboarding = 'false'` → navigates to `/`.
 
@@ -320,19 +323,20 @@ On completion: saves `callcopilot_name`, `callcopilot_language`, `callcopilot_us
 All UI text is driven by `t(language)` from `constants/i18n.ts`.
 
 **Mobile layout (top to bottom):**
-1. **Header** — logo box + "CallCopilot" wordmark; profile button (👤) → sign-out alert
-2. **Hero** — language-specific headline + personalized subtitle
-3. **Language selector** — horizontal-scroll pill chips
-4. **Goal input card** — white card `borderRadius: 24`
-5. **Common tasks** — horizontal-scroll preset chips
-6. **Start Call gradient card** — sky-blue `LinearGradient`, `borderRadius: 32`
-7. **Tip text**
+1. **Header** — "CallCopilot" wordmark (20px bold) + "Sign Out" text button in `#FF3B30`
+2. **Hero** — 34px bold language-specific title + personalized subtitle in `#6E6E73`
+3. **Language selector** — section label + horizontal-scroll pill chips. Inactive: white pill. Active: `#007AFF` border + blue tinted fill + blue text
+4. **Goal input** — white rounded card (`borderRadius: 14`) with a plain `TextInput`, no title above
+5. **Common tasks** — section label + horizontal-scroll preset pills. Active: solid `#007AFF` fill + white text
+6. **Start Call** — full-width solid `#007AFF` button, `borderRadius: 14`, 17px semibold
+
+**Removed:** gradient start card, `📞` emoji icon box, `👤` profile button, "tip" text at bottom.
 
 **Wide layout (tablet/desktop):**
-- Mobile header is hidden; logo lives in the sidebar
-- Content constrained to `maxWidth: 720`, centered via `alignSelf: 'center'`
-- Language chips and preset cards switch from horizontal scroll → `flexWrap: 'wrap'` grid
-- Hero title scales to `fontSize: 46` on desktop (≥ 1024px)
+- Mobile header hidden; wordmark lives in `SideNav`
+- Content constrained to `maxWidth: 680`, centered
+- Language chips and preset chips switch from horizontal scroll → `flexWrap: 'wrap'` grid
+- Hero title scales to `fontSize: 44` on desktop (≥ 1024px)
 
 ---
 
@@ -341,24 +345,28 @@ All UI text is driven by `t(language)` from `constants/i18n.ts`.
 Route params: `goal` (string) + `language` (string).
 
 **Layout:**
-1. **Header** — orange gradient "结束" pill (left); goal text (center); language badge (right)
-2. **ScrollView** — conversation entries, auto-scroll to bottom
-3. **Recording banner** — red `#FEF2F2` bar while recording
-4. **Input bar** — mic + text input + send
+1. **Header** — "End" pill button in `#FF3B30` (left, replaces hardcoded "结束"); goal text in `#6E6E73` (center); language badge in `rgba(120,120,128,0.12)` fill (right). Hairline bottom border
+2. **ScrollView** — `#F2F2F7` bg, conversation entries, auto-scroll to bottom
+3. **Recording banner** — `rgba(255,59,48,0.06)` bg + `#FF3B30` dot + text when recording
+4. **Input bar** — mic button (gray fill, red tint when recording) + white rounded `TextInput` + solid `#007AFF` send pill
 
-On wide screens: entire screen (header + chat + input bar) is constrained to `maxWidth: 800`, centered via `alignSelf: 'center'` inside the `SafeAreaView`.
+**End button:** was hardcoded `"结束"` (Chinese) — now shows `"End"` in English for all users.
+
+On wide screens: entire screen constrained to `maxWidth: 800`, centered.
 
 ---
 
 ### History Screen — `app/(tabs)/history.tsx`
 
+- `#F2F2F7` background
+- 34px bold "History" large title + session count in `#AEAEB2` at top right
 - Loads sessions on tab focus via `useFocusEffect`
 - Pull-to-refresh supported
-- Each `SessionCard` shows: language flag, goal text, date, exchange count, language name
-- Tap to expand → shows full `EntryView` conversation inline
-- 🗑 delete button → confirmation alert → `deleteCallSession(id)` → removes from list
-- Empty state: 📋 icon + instructions
-- On wide screens: sidebar shown, list constrained to `maxWidth: 760`, centered
+- Each `SessionCard`: white rounded card (`borderRadius: 14`), flag + goal + date/exchange count meta. Delete text button in `#FF3B30` + `›` chevron disclosure indicator
+- Tap card to expand → shows full `EntryView` conversation inline, separated by hairline
+- Delete → confirmation alert → `deleteCallSession(id)` → removes from list
+- Empty state: white circle + 📋 emoji + plain instructions (references "End" not "结束")
+- On wide screens: sidebar shown, list constrained to `maxWidth: 720`, centered
 - Web guests (no session): `fetchSessions` returns early, empty state shown
 
 ---
@@ -366,42 +374,62 @@ On wide screens: entire screen (header + chat + input bar) is constrained to `ma
 ## Design System
 
 All styling in per-file `StyleSheet.create()`. No NativeWind or global CSS.
+Apple Human Interface Guidelines–inspired. Zero gradients, zero emoji chrome.
 
 ### Colors
 | Token | Hex | Usage |
 |---|---|---|
-| Background | `#FFFFFF` | All screens |
-| Slate-900 | `#0F172A` | Primary text, logo box |
-| Slate-700 | `#1E293B` | Body text in cards |
-| Slate-500 | `#64748B` | Secondary text |
-| Slate-400 | `#94A3B8` | Placeholder, muted |
-| Slate-100 | `#F1F5F9` | Borders |
-| Slate-50 | `#F8FAFC` | Input bg, card fills |
-| Sky gradient | `#0EA5E9 → #0284C7` | Primary CTA, mic, send |
-| Orange gradient | `#FB923C → #F97316` | End call button |
-| Red | `#EF4444` | Recording mic |
-| Disabled | `#CBD5E1` | Disabled gradient |
+| System BG | `#F2F2F7` | All screen backgrounds |
+| Card | `#FFFFFF` | All card/surface backgrounds |
+| Accent | `#007AFF` | Primary buttons, active states, links |
+| Accent light | `rgba(0,122,255,0.08)` | Active chip/tile fill |
+| Text primary | `#000000` | Headings, body |
+| Text secondary | `#6E6E73` | Sub-labels, descriptions |
+| Text tertiary | `#AEAEB2` | Placeholders, metadata, muted |
+| Separator | `#E5E5EA` | Hairline dividers between list rows |
+| Fill | `rgba(120,120,128,0.12)` | Segmented control bg, mic button |
+| Danger | `#FF3B30` | End call, delete, sign out, errors |
+| Success | `#34C759` | Auth notice / confirmation |
+| Recording tint | `rgba(255,59,48,0.06)` | Recording banner bg |
 
-### Gradient Button Pattern
+### Button Pattern (solid, no gradients)
 ```tsx
-<Pressable style={({ pressed }) => [styles.wrapper, pressed && styles.pressed]}>
-  <LinearGradient colors={['#0EA5E9','#0284C7']} style={styles.inner}>
-    <Text>Label</Text>
-  </LinearGradient>
+<Pressable
+  style={({ pressed }) => [styles.btn, pressed && styles.pressed]}>
+  <Text style={styles.btnText}>Label</Text>
 </Pressable>
-// wrapper needs: borderRadius + overflow: 'hidden' for Android clipping
+
+btn: { backgroundColor: '#007AFF', borderRadius: 14, paddingVertical: 16, alignItems: 'center' }
+btnText: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' }
+pressed: { opacity: 0.7 }
 ```
 
 ### Press Micro-interaction (all tappable elements)
 ```tsx
-pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] }
+pressed: { opacity: 0.7 }
+```
+No scale transform — Apple's own controls use opacity only.
+
+### Shape
+- Screen cards / grouped forms: `borderRadius: 12–14`
+- Large content cards: `borderRadius: 16`
+- Pills / chips: `borderRadius: 999`
+- Language tiles: `borderRadius: 14`
+- No box shadows — depth comes from `#FFFFFF` cards on `#F2F2F7` background
+
+### Segmented Control Pattern (auth screen, iOS-native feel)
+```tsx
+segmentedRow: { backgroundColor: 'rgba(120,120,128,0.12)', borderRadius: 11, padding: 2 }
+segment: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center' }
+segmentActive: { backgroundColor: '#FFFFFF', shadowOpacity: 0.06, shadowRadius: 4 }
 ```
 
-### Shape & Shadow
-- Large cards: `borderRadius: 24–32`
-- Section/response cards: `borderRadius: 14`
-- Chips/pills: `borderRadius: 12–20` or `999`
-- Shadow: `shadowOpacity: 0.04`, `shadowRadius: 20`, `shadowOffset: {width:0, height:4}`
+### Grouped List Row Pattern (onboarding use-cases, auth fields)
+```tsx
+// White card, rows separated by hairline dividers starting at 16px left indent
+fieldCard: { backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }
+fieldSep: { height: StyleSheet.hairlineWidth, backgroundColor: '#E5E5EA', marginLeft: 16 }
+```
 
 ---
 
@@ -460,17 +488,33 @@ Based on `useWindowDimensions()`. Reactive — updates instantly on window resiz
 ## Shared Components
 
 ### `components/call-entry.tsx`
-Exports `EntryView` (agent bubble + 5 section cards). Used by both `call.tsx` and `history.tsx`.
+Exports `EntryView`. Used by both `call.tsx` and `history.tsx`.
+
+Structure per entry:
+1. **Agent bubble** — `#E5E5EA` gray rounded bubble (`borderRadius: 18`, `borderBottomLeftRadius: 4`), left-aligned, max 86% width. iMessage-style received message.
+2. **Response card** — single white card (`borderRadius: 16`) with 4–5 sections separated by `#E5E5EA` hairline dividers:
+   - `UNDERSTANDING` — body text `#000000`
+   - `TRANSLATION` — body text `#000000`
+   - `WHAT TO DO NEXT` — body text `#000000`
+   - `SUGGESTED REPLY` — **`#007AFF` bold 16px** — visually dominant as the primary action
+   - `NOTES` (optional) — `#6E6E73` muted text
+
+**Removed:** all colored section backgrounds (blue/green/orange/teal), left border accents, "AGENT SAID" label above bubble, separate card per section.
 
 ### `components/side-nav.tsx`
-Desktop/tablet sidebar. Rendered inside `index.tsx` and `history.tsx` when `isWide` is true. Contains logo, nav links (Home, History), and Sign Out button (hidden when no session). Uses `usePathname()` to highlight the active tab.
+Desktop/tablet sidebar (`width: 200`). `#F2F2F7` bg, hairline right border.
+- "CallCopilot" text wordmark only — no emoji logo box
+- Nav links: text-only, active = `#007AFF` bold, inactive = `#6E6E73`
+- "Sign Out" in `#FF3B30` pinned to bottom (hidden when no session)
+- Uses `usePathname()` to highlight active route
 
 ### `components/tutorial.tsx`
 `TutorialOverlay({ steps, currentStep, onNext, onSkip, visible })`
-- Renders as a `Modal` with semi-transparent backdrop
-- Bottom-sheet card with spring animation (`Animated.spring`)
-- Animated progress dots (active dot expands to 20px width)
-- "Skip tour" link + sky-blue "Next →" / "Get started ✓" gradient button
+- `Modal` with `rgba(0,0,0,0.32)` backdrop
+- Bottom-sheet white card (`borderTopRadius: 24`) with spring animation
+- Gray drag handle at top
+- Animated progress dots: active dot expands to 18px width in `#007AFF`
+- "Skip" link in `#AEAEB2` + solid `#007AFF` "Next" / "Get started" button
 
 ---
 
@@ -487,12 +531,12 @@ Desktop/tablet sidebar. Rendered inside `index.tsx` and `history.tsx` when `isWi
 ## Bottom Navigation — `app/(tabs)/_layout.tsx`
 
 Two tabs:
-- **HOME** 🏠 — `app/(tabs)/index.tsx`
-- **HISTORY** 🕐 — `app/(tabs)/history.tsx`
+- **Home** — `app/(tabs)/index.tsx`
+- **History** — `app/(tabs)/history.tsx`
 
-Tab bar: `rgba(255,255,255,0.98)` bg, Slate-100 top border, active tint `#0F172A`, inactive `#94A3B8`, label `fontSize: 10`, `fontWeight: '700'`, `letterSpacing: 1.2`, uppercase via `textTransform`. Height: 84px iOS / 64px Android with safe-area padding.
+Tab bar: `rgba(242,242,247,0.94)` translucent bg, `#C6C6C8` hairline top border. Active tint `#007AFF`, inactive `#8E8E93`. Label `fontSize: 11`, `fontWeight: '500'`. No icons — labels only (`tabBarShowIcon: false`). Height: 83px iOS / 60px Android.
 
-**On wide screens (≥ 768px):** tab bar is hidden via `tabBarStyle: { display: 'none' }`. Navigation is handled by `SideNav` rendered inside each tab screen.
+**On wide screens (≥ 768px):** tab bar is hidden. Navigation handled by `SideNav` rendered inside each tab screen.
 
 ---
 
@@ -512,7 +556,7 @@ npx expo start --web
 
 ---
 
-## Current State (end of session 4)
+## Current State (end of session 5)
 
 **Working:**
 - ✅ Sign up / log in with Supabase email auth (native only)
@@ -521,11 +565,11 @@ npx expo start --web
 - ✅ Full UI localization for 8 languages (all screen text, presets, dialogs)
 - ✅ AI responds in selected language (Suggested Reply always English)
 - ✅ Language persisted to device, loads instantly on app open
-- ✅ Goal Setup screen — language selector, preset chips, gradient start card
+- ✅ Goal Setup screen — language selector, preset chips, solid blue start button
 - ✅ Call screen — mic recording, Whisper transcription, AI 5-section response
 - ✅ Session auto-saved to Supabase on call end (best-effort, native only)
 - ✅ History tab — browse, expand, and delete past call sessions
-- ✅ Bottom navigation — HOME + HISTORY tabs
+- ✅ Bottom navigation — Home + History tabs
 - ✅ Sign out with confirmation in user's language
 - ✅ Landing page (`landing/index.html`) — deploy via Netlify drag-and-drop
 - ✅ **Responsive web app** — works on laptop, iPad, and mobile browser
@@ -534,13 +578,14 @@ npx expo start --web
 - ✅ **Web guest mode** — no sign-in required on web; full call feature works; history empty for guests
 - ✅ **Web-safe auth storage** — `localStorage` on web, `expo-secure-store` on native
 - ✅ **SPA web output** — `app.json` `web.output: "single"` prevents SSR crashes
+- ✅ **Apple-style UI redesign** — full redesign of all 9 screens/components (session 5)
 
 **Known limitations:**
 - iOS cannot capture live call audio — user must use speaker mode
 - Android live call audio also blocked on Android 10+ (OS restriction, not a bug)
 - No in-app API key settings — keys live in `.env.local` only
 - Light mode only — dark mode not implemented
-- System fonts only — General Sans / Satoshi not installed
+- System fonts only — custom font not installed
 - No push notifications
 - No Google / Apple social sign-in
 - Web guests cannot save history (no Supabase session); auth on web not wired up yet

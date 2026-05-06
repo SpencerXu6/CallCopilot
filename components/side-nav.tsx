@@ -3,8 +3,8 @@ import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native
 import { useAuth } from '@/hooks/use-auth';
 
 const NAV = [
-  { label: 'Home', emoji: '🏠', path: '/' },
-  { label: 'History', emoji: '🕐', path: '/history' },
+  { label: 'Home', path: '/' },
+  { label: 'History', path: '/history' },
 ] as const;
 
 export function SideNav() {
@@ -21,12 +21,7 @@ export function SideNav() {
   return (
     <View style={styles.sidebar}>
       <View>
-        <View style={styles.logoRow}>
-          <View style={styles.logoBox}>
-            <Text style={styles.logoIcon}>📞</Text>
-          </View>
-          <Text style={styles.logoName}>CallCopilot</Text>
-        </View>
+        <Text style={styles.wordmark}>CallCopilot</Text>
 
         <View style={styles.nav}>
           {NAV.map(item => {
@@ -37,10 +32,8 @@ export function SideNav() {
                 onPress={() => router.push(item.path as never)}
                 style={({ pressed }) => [
                   styles.navItem,
-                  active && styles.navItemActive,
                   pressed && styles.navItemPressed,
                 ]}>
-                <Text style={styles.navEmoji}>{item.emoji}</Text>
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>
                   {item.label}
                 </Text>
@@ -63,66 +56,46 @@ export function SideNav() {
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 220,
-    backgroundColor: '#FAFAFA',
-    borderRightWidth: 1,
-    borderRightColor: '#F1F5F9',
-    paddingTop: 40,
+    width: 200,
+    backgroundColor: '#F2F2F7',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: '#C6C6C8',
+    paddingTop: 48,
     paddingBottom: 32,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     justifyContent: 'space-between',
   },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 32,
-    paddingHorizontal: 8,
-  },
-  logoBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoIcon: { fontSize: 15 },
-  logoName: {
-    fontSize: 16,
+  wordmark: {
+    fontSize: 17,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#000000',
     letterSpacing: -0.3,
+    marginBottom: 36,
   },
   nav: { gap: 2 },
   navItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderRadius: 8,
   },
-  navItemActive: { backgroundColor: '#EFF6FF' },
-  navItemPressed: { opacity: 0.75 },
-  navEmoji: { fontSize: 16 },
+  navItemPressed: { opacity: 0.6 },
   navLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748B',
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#6E6E73',
   },
   navLabelActive: {
-    color: '#0284C7',
+    color: '#007AFF',
     fontWeight: '600',
   },
   signOutBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderRadius: 8,
   },
   signOutText: {
-    fontSize: 13,
-    color: '#94A3B8',
+    fontSize: 15,
+    color: '#FF3B30',
     fontWeight: '500',
   },
 });

@@ -10,7 +10,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -26,11 +25,11 @@ const LANGUAGES = [
 ];
 
 const USE_CASES = [
-  { icon: '🏥', label: 'Healthcare', sub: 'Doctor appointments, insurance, pharmacy' },
-  { icon: '🏦', label: 'Banking & Finance', sub: 'Account questions, disputes, transfers' },
-  { icon: '💡', label: 'Utilities & Home', sub: 'Internet, electricity, trash, water' },
-  { icon: '📦', label: 'Customer Service', sub: 'Returns, cancellations, subscriptions' },
-  { icon: '🎯', label: 'Other', sub: 'General phone calls in English' },
+  { label: 'Healthcare', sub: 'Doctor appointments, insurance, pharmacy' },
+  { label: 'Banking & Finance', sub: 'Account questions, disputes, transfers' },
+  { label: 'Utilities & Home', sub: 'Internet, electricity, trash, water' },
+  { label: 'Customer Service', sub: 'Returns, cancellations, subscriptions' },
+  { label: 'Other', sub: 'General phone calls in English' },
 ];
 
 const TOTAL_STEPS = 3;
@@ -57,63 +56,59 @@ export default function OnboardingScreen() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
 
-        {/* Progress bar — shown on steps 1-3 */}
         {step > 0 && step <= TOTAL_STEPS && (
-          <View style={styles.progressBar}>
+          <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${(step / TOTAL_STEPS) * 100}%` as any }]} />
           </View>
         )}
 
-        {/* ── STEP 0: Welcome ── */}
+        {/* Step 0: Welcome */}
         {step === 0 && (
           <View style={styles.welcomeScreen}>
-            <LinearGradient colors={['#0EA5E9', '#0284C7']} style={styles.welcomeGradient}>
-              <View style={styles.welcomeLogoBox}>
-                <Text style={styles.welcomeLogoIcon}>📞</Text>
+            <View style={styles.welcomeContent}>
+              <View style={styles.logoMark}>
+                <Text style={styles.logoMarkText}>C</Text>
               </View>
               <Text style={styles.welcomeTitle}>Welcome to{'\n'}CallCopilot</Text>
               <Text style={styles.welcomeSub}>
-                Your AI assistant for English phone calls — available in your language, anytime.
+                Your AI assistant for English phone calls, explained in your language.
               </Text>
-            </LinearGradient>
-            <View style={styles.welcomeBottom}>
-              <Text style={styles.welcomeBodyTitle}>What CallCopilot does</Text>
               <View style={styles.featureList}>
                 {[
-                  ['🎙️', 'Records what the agent says'],
-                  ['🧠', 'Explains it in your language'],
-                  ['💬', 'Gives you an English reply to read aloud'],
-                ].map(([icon, text]) => (
-                  <View key={text} style={styles.featureRow}>
-                    <Text style={styles.featureIcon}>{icon}</Text>
-                    <Text style={styles.featureText}>{text}</Text>
+                  ['Record', 'Capture what the agent says'],
+                  ['Understand', 'Get a full explanation in your language'],
+                  ['Reply', 'Receive an English response to read aloud'],
+                ].map(([title, desc]) => (
+                  <View key={title} style={styles.featureRow}>
+                    <View style={styles.featureDot} />
+                    <View style={styles.featureText}>
+                      <Text style={styles.featureTitle}>{title}</Text>
+                      <Text style={styles.featureDesc}>{desc}</Text>
+                    </View>
                   </View>
                 ))}
               </View>
+            </View>
+            <View style={styles.welcomeFooter}>
               <Pressable
                 onPress={goNext}
-                style={({ pressed }) => [styles.primaryBtnWrapper, pressed && styles.pressed]}>
-                <LinearGradient colors={['#0EA5E9', '#0284C7']} style={styles.primaryBtn}>
-                  <Text style={styles.primaryBtnText}>Get Started →</Text>
-                </LinearGradient>
+                style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
+                <Text style={styles.primaryBtnText}>Get Started</Text>
               </Pressable>
             </View>
           </View>
         )}
 
-        {/* ── STEP 1: Name ── */}
+        {/* Step 1: Name */}
         {step === 1 && (
           <ScrollView contentContainerStyle={styles.stepContent} keyboardShouldPersistTaps="handled">
-            <Text style={styles.stepEyebrow}>Step 1 of {TOTAL_STEPS}</Text>
             <Text style={styles.stepTitle}>What should we{'\n'}call you?</Text>
-            <Text style={styles.stepSub}>
-              We'll use your name to personalize your experience.
-            </Text>
-            <View style={styles.nameInputWrapper}>
+            <Text style={styles.stepSub}>We'll use your name to personalize your experience.</Text>
+            <View style={styles.fieldCard}>
               <TextInput
-                style={styles.nameInput}
-                placeholder="Your first name"
-                placeholderTextColor="#94A3B8"
+                style={styles.fieldInput}
+                placeholder="First name"
+                placeholderTextColor="#AEAEB2"
                 value={name}
                 onChangeText={setName}
                 autoFocus
@@ -123,25 +118,20 @@ export default function OnboardingScreen() {
             </View>
             <Pressable
               onPress={goNext}
-              style={({ pressed }) => [styles.primaryBtnWrapper, pressed && styles.pressed]}>
-              <LinearGradient colors={['#0EA5E9', '#0284C7']} style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>Continue →</Text>
-              </LinearGradient>
+              style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
+              <Text style={styles.primaryBtnText}>Continue</Text>
             </Pressable>
             <Pressable onPress={goNext} style={styles.skipBtn}>
-              <Text style={styles.skipText}>Skip for now</Text>
+              <Text style={styles.skipText}>Skip</Text>
             </Pressable>
           </ScrollView>
         )}
 
-        {/* ── STEP 2: Language ── */}
+        {/* Step 2: Language */}
         {step === 2 && (
           <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.stepEyebrow}>Step 2 of {TOTAL_STEPS}</Text>
             <Text style={styles.stepTitle}>What's your{'\n'}primary language?</Text>
-            <Text style={styles.stepSub}>
-              The AI will explain everything in this language. You can change it anytime.
-            </Text>
+            <Text style={styles.stepSub}>The AI explains everything in this language. Change it anytime.</Text>
             <View style={styles.langGrid}>
               {LANGUAGES.map(lang => {
                 const active = language === lang.name;
@@ -154,59 +144,45 @@ export default function OnboardingScreen() {
                       active && styles.langTileActive,
                       pressed && styles.pressed,
                     ]}>
-                    <Text style={styles.langTileFlag}>{lang.flag}</Text>
-                    <Text style={[styles.langTileLabel, active && styles.langTileLabelActive]}>
-                      {lang.label}
-                    </Text>
-                    <Text style={[styles.langTileSub, active && styles.langTileSubActive]}>
-                      {lang.sub}
-                    </Text>
-                    {active && <View style={styles.langCheckmark}><Text style={styles.langCheckmarkText}>✓</Text></View>}
+                    <Text style={styles.langFlag}>{lang.flag}</Text>
+                    <Text style={[styles.langLabel, active && styles.langLabelActive]}>{lang.label}</Text>
+                    <Text style={[styles.langSub, active && styles.langSubActive]}>{lang.sub}</Text>
                   </Pressable>
                 );
               })}
             </View>
             <Pressable
               onPress={goNext}
-              style={({ pressed }) => [styles.primaryBtnWrapper, pressed && styles.pressed]}>
-              <LinearGradient colors={['#0EA5E9', '#0284C7']} style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>Continue →</Text>
-              </LinearGradient>
+              style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}>
+              <Text style={styles.primaryBtnText}>Continue</Text>
             </Pressable>
           </ScrollView>
         )}
 
-        {/* ── STEP 3: Use Case ── */}
+        {/* Step 3: Use Case */}
         {step === 3 && (
           <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.stepEyebrow}>Step 3 of {TOTAL_STEPS}</Text>
-            <Text style={styles.stepTitle}>What will you use{'\n'}CallCopilot for most?</Text>
-            <Text style={styles.stepSub}>
-              This helps us tailor guidance to your most common situations.
-            </Text>
-            <View style={styles.useCaseList}>
-              {USE_CASES.map(uc => {
+            <Text style={styles.stepTitle}>What will you use{'\n'}CallCopilot for?</Text>
+            <Text style={styles.stepSub}>Helps us tailor guidance to your situation.</Text>
+            <View style={styles.useCaseCard}>
+              {USE_CASES.map((uc, i) => {
                 const active = useCase === uc.label;
+                const isLast = i === USE_CASES.length - 1;
                 return (
-                  <Pressable
-                    key={uc.label}
-                    onPress={() => setUseCase(uc.label)}
-                    style={({ pressed }) => [
-                      styles.useCaseTile,
-                      active && styles.useCaseTileActive,
-                      pressed && styles.pressed,
-                    ]}>
-                    <Text style={styles.useCaseIcon}>{uc.icon}</Text>
-                    <View style={styles.useCaseInfo}>
-                      <Text style={[styles.useCaseLabel, active && styles.useCaseLabelActive]}>
-                        {uc.label}
-                      </Text>
-                      <Text style={styles.useCaseSub}>{uc.sub}</Text>
-                    </View>
-                    <View style={[styles.useCaseRadio, active && styles.useCaseRadioActive]}>
-                      {active && <View style={styles.useCaseRadioDot} />}
-                    </View>
-                  </Pressable>
+                  <View key={uc.label}>
+                    <Pressable
+                      onPress={() => setUseCase(uc.label)}
+                      style={({ pressed }) => [styles.useCaseRow, pressed && styles.pressed]}>
+                      <View style={styles.useCaseLeft}>
+                        <Text style={styles.useCaseLabel}>{uc.label}</Text>
+                        <Text style={styles.useCaseSub}>{uc.sub}</Text>
+                      </View>
+                      <View style={[styles.radio, active && styles.radioActive]}>
+                        {active && <View style={styles.radioDot} />}
+                      </View>
+                    </Pressable>
+                    {!isLast && <View style={styles.rowSep} />}
+                  </View>
                 );
               })}
             </View>
@@ -214,155 +190,102 @@ export default function OnboardingScreen() {
               onPress={finish}
               disabled={!useCase}
               style={({ pressed }) => [
-                styles.primaryBtnWrapper,
+                styles.primaryBtn,
                 !useCase && styles.primaryBtnDisabled,
-                pressed && useCase && styles.pressed,
+                pressed && !!useCase && styles.pressed,
               ]}>
-              <LinearGradient
-                colors={useCase ? ['#0EA5E9', '#0284C7'] : ['#CBD5E1', '#CBD5E1']}
-                style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>Finish Setup →</Text>
-              </LinearGradient>
+              <Text style={styles.primaryBtnText}>Finish Setup</Text>
             </Pressable>
             <Pressable onPress={finish} style={styles.skipBtn}>
-              <Text style={styles.skipText}>Skip for now</Text>
+              <Text style={styles.skipText}>Skip</Text>
             </Pressable>
           </ScrollView>
         )}
+
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: '#F2F2F7' },
   flex: { flex: 1 },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  pressed: { opacity: 0.7 },
 
-  // Progress
-  progressBar: {
-    height: 3,
-    backgroundColor: '#F1F5F9',
-    marginHorizontal: 0,
-  },
-  progressFill: {
-    height: 3,
-    backgroundColor: '#0EA5E9',
-    borderRadius: 2,
-  },
+  progressTrack: { height: 2, backgroundColor: '#E5E5EA' },
+  progressFill: { height: 2, backgroundColor: '#007AFF' },
 
-  // Welcome
-  welcomeScreen: { flex: 1 },
-  welcomeGradient: {
-    paddingTop: 56,
-    paddingBottom: 48,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-  },
-  welcomeLogoBox: {
-    width: 72, height: 72, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  welcomeScreen: { flex: 1, justifyContent: 'space-between' },
+  welcomeContent: { paddingHorizontal: 28, paddingTop: 56 },
+  logoMark: {
+    width: 56, height: 56, borderRadius: 14,
+    backgroundColor: '#000000',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
-  welcomeLogoIcon: { fontSize: 32 },
+  logoMarkText: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
   welcomeTitle: {
-    fontSize: 34, fontWeight: '600', color: '#FFFFFF',
-    textAlign: 'center', letterSpacing: -0.6, lineHeight: 40, marginBottom: 14,
+    fontSize: 34, fontWeight: '700', color: '#000000',
+    lineHeight: 40, letterSpacing: -0.5, marginBottom: 12,
   },
-  welcomeSub: {
-    fontSize: 16, color: 'rgba(255,255,255,0.85)',
-    textAlign: 'center', lineHeight: 24, maxWidth: 300,
-  },
-  welcomeBottom: { flex: 1, padding: 28, justifyContent: 'space-between' },
-  welcomeBodyTitle: {
-    fontSize: 17, fontWeight: '600', color: '#0F172A', marginBottom: 16, letterSpacing: -0.2,
-  },
-  featureList: { gap: 14, marginBottom: 32 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  featureIcon: { fontSize: 22, width: 32, textAlign: 'center' },
-  featureText: { fontSize: 15, color: '#1E293B', fontWeight: '400', flex: 1 },
+  welcomeSub: { fontSize: 17, color: '#6E6E73', lineHeight: 26, marginBottom: 44 },
+  featureList: { gap: 24 },
+  featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+  featureDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#007AFF', marginTop: 5 },
+  featureText: { flex: 1 },
+  featureTitle: { fontSize: 15, fontWeight: '600', color: '#000000', marginBottom: 2 },
+  featureDesc: { fontSize: 14, color: '#6E6E73' },
+  welcomeFooter: { padding: 28, paddingBottom: 40 },
 
-  // Steps
-  stepContent: { padding: 28, paddingTop: 36, paddingBottom: 48 },
-  stepEyebrow: {
-    fontSize: 12, fontWeight: '700', color: '#0EA5E9',
-    textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12,
-  },
+  stepContent: { paddingHorizontal: 20, paddingTop: 44, paddingBottom: 48 },
   stepTitle: {
-    fontSize: 32, fontWeight: '600', color: '#0F172A',
-    lineHeight: 36, letterSpacing: -0.6, marginBottom: 10,
+    fontSize: 34, fontWeight: '700', color: '#000000',
+    lineHeight: 40, letterSpacing: -0.5, marginBottom: 8,
   },
-  stepSub: {
-    fontSize: 16, color: '#64748B', lineHeight: 24, marginBottom: 32,
+  stepSub: { fontSize: 15, color: '#6E6E73', lineHeight: 22, marginBottom: 32 },
+
+  fieldCard: { backgroundColor: '#FFFFFF', borderRadius: 12, marginBottom: 16, overflow: 'hidden' },
+  fieldInput: {
+    paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 17, color: '#000000',
   },
 
-  // Name input
-  nameInputWrapper: { marginBottom: 28 },
-  nameInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1, borderColor: '#F1F5F9',
-    borderRadius: 16, paddingHorizontal: 20,
-    paddingVertical: 16, fontSize: 18,
-    color: '#0F172A', fontWeight: '500',
-  },
-
-  // Language grid
-  langGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    gap: 10, marginBottom: 32,
-  },
+  langGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 32 },
   langTile: {
-    width: '47%', backgroundColor: '#F8FAFC',
-    borderWidth: 1.5, borderColor: '#F1F5F9',
-    borderRadius: 18, padding: 16,
-    alignItems: 'center', position: 'relative',
+    width: '47.5%', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16,
+    alignItems: 'center', borderWidth: 2, borderColor: 'transparent',
   },
-  langTileActive: { backgroundColor: '#EFF6FF', borderColor: '#0EA5E9' },
-  langTileFlag: { fontSize: 28, marginBottom: 8 },
-  langTileLabel: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
-  langTileLabelActive: { color: '#0284C7' },
-  langTileSub: { fontSize: 11, color: '#94A3B8' },
-  langTileSubActive: { color: '#0EA5E9' },
-  langCheckmark: {
-    position: 'absolute', top: 8, right: 8,
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: '#0EA5E9',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  langCheckmarkText: { fontSize: 11, color: '#FFFFFF', fontWeight: '700' },
+  langTileActive: { borderColor: '#007AFF', backgroundColor: 'rgba(0,122,255,0.06)' },
+  langFlag: { fontSize: 26, marginBottom: 8 },
+  langLabel: { fontSize: 15, fontWeight: '600', color: '#000000', marginBottom: 2 },
+  langLabelActive: { color: '#007AFF' },
+  langSub: { fontSize: 12, color: '#AEAEB2' },
+  langSubActive: { color: '#007AFF' },
 
-  // Use cases
-  useCaseList: { gap: 10, marginBottom: 32 },
-  useCaseTile: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5, borderColor: '#F1F5F9',
-    borderRadius: 18, padding: 16,
+  useCaseCard: { backgroundColor: '#FFFFFF', borderRadius: 12, marginBottom: 24, overflow: 'hidden' },
+  useCaseRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 14,
   },
-  useCaseTileActive: { backgroundColor: '#EFF6FF', borderColor: '#0EA5E9' },
-  useCaseIcon: { fontSize: 24, width: 32, textAlign: 'center' },
-  useCaseInfo: { flex: 1 },
-  useCaseLabel: { fontSize: 15, fontWeight: '600', color: '#0F172A', marginBottom: 2 },
-  useCaseLabelActive: { color: '#0284C7' },
-  useCaseSub: { fontSize: 12, color: '#94A3B8' },
-  useCaseRadio: {
+  useCaseLeft: { flex: 1 },
+  useCaseLabel: { fontSize: 15, fontWeight: '500', color: '#000000', marginBottom: 2 },
+  useCaseSub: { fontSize: 13, color: '#AEAEB2' },
+  rowSep: { height: StyleSheet.hairlineWidth, backgroundColor: '#E5E5EA', marginLeft: 16 },
+  radio: {
     width: 22, height: 22, borderRadius: 11,
-    borderWidth: 2, borderColor: '#CBD5E1',
+    borderWidth: 2, borderColor: '#C7C7CC',
     alignItems: 'center', justifyContent: 'center',
   },
-  useCaseRadioActive: { borderColor: '#0EA5E9' },
-  useCaseRadioDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: '#0EA5E9',
+  radioActive: { borderColor: '#007AFF' },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#007AFF' },
+
+  primaryBtn: {
+    backgroundColor: '#007AFF', borderRadius: 14,
+    paddingVertical: 16, alignItems: 'center', marginBottom: 12,
   },
+  primaryBtnDisabled: { opacity: 0.4 },
+  primaryBtnText: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
 
-  // Primary button
-  primaryBtnWrapper: { borderRadius: 16, overflow: 'hidden', marginBottom: 12 },
-  primaryBtnDisabled: { opacity: 0.5 },
-  primaryBtn: { paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
-  primaryBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-
-  // Skip
-  skipBtn: { paddingVertical: 12, alignItems: 'center' },
-  skipText: { fontSize: 14, color: '#94A3B8', fontWeight: '500' },
+  skipBtn: { paddingVertical: 10, alignItems: 'center' },
+  skipText: { fontSize: 15, color: '#AEAEB2' },
 });

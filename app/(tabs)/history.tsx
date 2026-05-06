@@ -43,29 +43,28 @@ function SessionCard({ session, onDelete }: { session: SavedSession; onDelete: (
     <View style={styles.sessionCard}>
       <Pressable
         onPress={() => setExpanded(v => !v)}
-        style={({ pressed }) => [styles.sessionHeader, pressed && styles.pressed]}>
-        <View style={styles.sessionMeta}>
-          <Text style={styles.sessionFlag}>{flag}</Text>
-          <View style={styles.sessionInfo}>
-            <Text style={styles.sessionGoal} numberOfLines={1}>{session.goal}</Text>
-            <Text style={styles.sessionSub}>
-              {formatDate(session.created_at)} · {session.entries.length} exchange{session.entries.length !== 1 ? 's' : ''} · {session.language}
-            </Text>
-          </View>
+        style={({ pressed }) => [styles.sessionRow, pressed && styles.pressed]}>
+        <Text style={styles.sessionFlag}>{flag}</Text>
+        <View style={styles.sessionInfo}>
+          <Text style={styles.sessionGoal} numberOfLines={1}>{session.goal}</Text>
+          <Text style={styles.sessionMeta}>
+            {formatDate(session.created_at)} · {session.entries.length} exchange{session.entries.length !== 1 ? 's' : ''}
+          </Text>
         </View>
-        <View style={styles.sessionActions}>
+        <View style={styles.sessionRight}>
           <Pressable
             onPress={confirmDelete}
             hitSlop={8}
             style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}>
-            <Text style={styles.deleteBtnText}>🗑</Text>
+            <Text style={styles.deleteBtnText}>Delete</Text>
           </Pressable>
-          <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+          <Text style={styles.chevron}>{expanded ? '▲' : '›'}</Text>
         </View>
       </Pressable>
 
       {expanded && (
         <View style={styles.sessionEntries}>
+          <View style={styles.entriesDivider} />
           {session.entries.map(entry => (
             <EntryView key={entry.id} entry={entry} />
           ))}
@@ -121,33 +120,25 @@ export default function HistoryScreen() {
       <SafeAreaView style={styles.safe} edges={isWide ? [] : ['top']}>
         <View style={[styles.inner, isWide && styles.innerWide]}>
 
-          {/* Header */}
           <View style={styles.header}>
-            {!isWide && (
-              <View style={styles.logoBox}>
-                <Text style={styles.logoIcon}>🕐</Text>
-              </View>
+            <Text style={styles.headerTitle}>History</Text>
+            {!loading && sessions.length > 0 && (
+              <Text style={styles.headerCount}>{sessions.length} session{sessions.length !== 1 ? 's' : ''}</Text>
             )}
-            <View>
-              <Text style={styles.headerTitle}>Call History</Text>
-              <Text style={styles.headerSub}>
-                {sessions.length} saved session{sessions.length !== 1 ? 's' : ''}
-              </Text>
-            </View>
           </View>
 
           {loading ? (
             <View style={styles.centered}>
-              <ActivityIndicator size="large" color="#0EA5E9" />
+              <ActivityIndicator size="large" color="#007AFF" />
             </View>
           ) : sessions.length === 0 ? (
             <View style={styles.emptyState}>
-              <View style={styles.emptyIconBox}>
+              <View style={styles.emptyCircle}>
                 <Text style={styles.emptyEmoji}>📋</Text>
               </View>
               <Text style={styles.emptyTitle}>No calls yet</Text>
               <Text style={styles.emptySub}>
-                Your completed calls will appear here after you tap 结束 to end a session.
+                Complete a call and tap End to save it here.
               </Text>
             </View>
           ) : (
@@ -155,7 +146,7 @@ export default function HistoryScreen() {
               contentContainerStyle={styles.list}
               showsVerticalScrollIndicator={false}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0EA5E9" />
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#007AFF" />
               }>
               {sessions.map(session => (
                 <SessionCard
@@ -173,75 +164,61 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
+  root: { flex: 1, backgroundColor: '#F2F2F7' },
   rootWide: { flexDirection: 'row' },
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  safe: { flex: 1, backgroundColor: '#F2F2F7' },
+  pressed: { opacity: 0.7 },
 
   inner: { flex: 1 },
-  innerWide: { maxWidth: 760, alignSelf: 'center', width: '100%' },
+  innerWide: { maxWidth: 720, alignSelf: 'center', width: '100%' },
 
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 28,
-    paddingTop: 16,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
-  logoBox: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: '#0F172A',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  logoIcon: { fontSize: 18 },
-  headerTitle: { fontSize: 20, fontWeight: '600', color: '#0F172A', letterSpacing: -0.3 },
-  headerSub: { fontSize: 13, color: '#94A3B8', marginTop: 1 },
+  headerTitle: { fontSize: 34, fontWeight: '700', color: '#000000', letterSpacing: -0.5 },
+  headerCount: { fontSize: 15, color: '#AEAEB2' },
 
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  emptyIconBox: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1, borderColor: '#F1F5F9',
+  emptyCircle: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
-  emptyEmoji: { fontSize: 36 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', color: '#0F172A', marginBottom: 10, letterSpacing: -0.3 },
-  emptySub: { fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 22 },
+  emptyEmoji: { fontSize: 32 },
+  emptyTitle: { fontSize: 20, fontWeight: '600', color: '#000000', marginBottom: 8, letterSpacing: -0.3 },
+  emptySub: { fontSize: 14, color: '#AEAEB2', textAlign: 'center', lineHeight: 22 },
 
-  list: { padding: 16, gap: 12, paddingBottom: 32 },
+  list: { paddingHorizontal: 20, paddingBottom: 40, gap: 2 },
 
   sessionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 2,
+    borderRadius: 14,
     overflow: 'hidden',
+    marginBottom: 10,
   },
-  sessionHeader: {
+  sessionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
   },
-  sessionMeta: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  sessionFlag: { fontSize: 28 },
+  sessionFlag: { fontSize: 24 },
   sessionInfo: { flex: 1 },
-  sessionGoal: { fontSize: 15, fontWeight: '600', color: '#0F172A', marginBottom: 3 },
-  sessionSub: { fontSize: 12, color: '#94A3B8', fontWeight: '400' },
-  sessionActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  deleteBtn: { padding: 4 },
-  deleteBtnText: { fontSize: 16 },
-  chevron: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  sessionGoal: { fontSize: 15, fontWeight: '500', color: '#000000', marginBottom: 3 },
+  sessionMeta: { fontSize: 12, color: '#AEAEB2' },
+  sessionRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  deleteBtn: { paddingHorizontal: 4, paddingVertical: 2 },
+  deleteBtnText: { fontSize: 13, color: '#FF3B30', fontWeight: '500' },
+  chevron: { fontSize: 16, color: '#C7C7CC', fontWeight: '500' },
 
-  sessionEntries: { borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 8 },
+  sessionEntries: { paddingTop: 8 },
+  entriesDivider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E5E5EA', marginHorizontal: 16, marginBottom: 8 },
 });

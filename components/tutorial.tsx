@@ -7,7 +7,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export interface TutorialStep {
   emoji: string;
@@ -30,8 +29,8 @@ export function TutorialOverlay({ steps, currentStep, onNext, onSkip, visible }:
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-        Animated.spring(slideAnim, { toValue: 0, tension: 65, friction: 10, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, tension: 70, friction: 11, useNativeDriver: true }),
       ]).start();
     } else {
       slideAnim.setValue(300);
@@ -41,7 +40,7 @@ export function TutorialOverlay({ steps, currentStep, onNext, onSkip, visible }:
 
   useEffect(() => {
     if (visible) {
-      Animated.spring(slideAnim, { toValue: 0, tension: 65, friction: 10, useNativeDriver: true }).start();
+      Animated.spring(slideAnim, { toValue: 0, tension: 70, friction: 11, useNativeDriver: true }).start();
     }
   }, [currentStep]);
 
@@ -49,42 +48,33 @@ export function TutorialOverlay({ steps, currentStep, onNext, onSkip, visible }:
 
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
-  const progress = steps.map((_, i) => i);
 
   return (
     <Modal transparent animationType="none" visible={visible} onRequestClose={onSkip}>
-      <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
-        <Pressable style={styles.backdropPress} onPress={() => {}} />
-      </Animated.View>
+      <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]} />
 
       <Animated.View style={[styles.card, { transform: [{ translateY: slideAnim }] }]}>
-        {/* Dots */}
+        <View style={styles.handle} />
+
         <View style={styles.dots}>
-          {progress.map(i => (
+          {steps.map((_, i) => (
             <View key={i} style={[styles.dot, i === currentStep && styles.dotActive]} />
           ))}
         </View>
 
-        {/* Content */}
         <Text style={styles.emoji}>{step.emoji}</Text>
         <Text style={styles.title}>{step.title}</Text>
         <Text style={styles.body}>{step.body}</Text>
 
-        {/* Buttons */}
         <View style={styles.btnRow}>
           <Pressable onPress={onSkip} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Skip tour</Text>
+            <Text style={styles.skipText}>Skip</Text>
           </Pressable>
 
           <Pressable
             onPress={onNext}
-            style={({ pressed }) => [styles.nextBtnWrapper, pressed && styles.pressed]}>
-            <LinearGradient
-              colors={['#0EA5E9', '#0284C7']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.nextBtn}>
-              <Text style={styles.nextBtnText}>{isLast ? 'Get started ✓' : 'Next →'}</Text>
-            </LinearGradient>
+            style={({ pressed }) => [styles.nextBtn, pressed && styles.pressed]}>
+            <Text style={styles.nextBtnText}>{isLast ? 'Get started' : 'Next'}</Text>
           </Pressable>
         </View>
       </Animated.View>
@@ -95,51 +85,48 @@ export function TutorialOverlay({ steps, currentStep, onNext, onSkip, visible }:
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: 'rgba(0,0,0,0.32)',
   },
-  backdropPress: { flex: 1 },
 
   card: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 28,
     paddingBottom: 44,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 20,
+  },
+
+  handle: {
+    width: 36, height: 4, borderRadius: 2,
+    backgroundColor: '#E5E5EA',
+    alignSelf: 'center',
+    marginBottom: 24,
   },
 
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 6,
+    gap: 5,
     marginBottom: 24,
   },
   dot: {
     width: 6, height: 6, borderRadius: 3,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E5E5EA',
   },
   dotActive: {
-    width: 20,
-    backgroundColor: '#0EA5E9',
+    width: 18,
+    backgroundColor: '#007AFF',
   },
 
-  emoji: {
-    fontSize: 48,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
+  emoji: { fontSize: 44, textAlign: 'center', marginBottom: 14 },
   title: {
-    fontSize: 22, fontWeight: '600', color: '#0F172A',
-    textAlign: 'center', letterSpacing: -0.3, marginBottom: 10,
+    fontSize: 22, fontWeight: '700', color: '#000000',
+    textAlign: 'center', letterSpacing: -0.3, marginBottom: 8,
   },
   body: {
-    fontSize: 15, color: '#64748B', textAlign: 'center',
+    fontSize: 15, color: '#6E6E73', textAlign: 'center',
     lineHeight: 23, marginBottom: 28, paddingHorizontal: 8,
   },
 
@@ -149,12 +136,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  skipBtn: { paddingVertical: 12, paddingHorizontal: 4 },
-  skipText: { fontSize: 14, color: '#94A3B8', fontWeight: '500' },
+  skipBtn: { paddingVertical: 14, paddingHorizontal: 4 },
+  skipText: { fontSize: 15, color: '#AEAEB2' },
 
-  nextBtnWrapper: { flex: 1, borderRadius: 14, overflow: 'hidden' },
-  nextBtn: { paddingVertical: 14, alignItems: 'center' },
-  nextBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  nextBtn: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  nextBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 
-  pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  pressed: { opacity: 0.7 },
 });
