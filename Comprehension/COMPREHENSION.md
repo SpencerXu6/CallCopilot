@@ -34,6 +34,7 @@ The app is **fully built and production-ready** with auth, multi-language suppor
 | Language | TypeScript | ~5.9.2 |
 | AI (chat) | Groq API — `llama-3.3-70b-versatile` | direct fetch, no SDK |
 | AI (transcription) | Groq Whisper — `whisper-large-v3-turbo` | direct fetch, no SDK |
+| TTS | expo-speech | SDK 54 compatible |
 
 **Architecture flags:**
 - `newArchEnabled: true` — React Native New Architecture (JSI, no bridge)
@@ -93,6 +94,7 @@ All stored on device, no server sync:
 | `callcopilot_use_case` | string | Use case selected during onboarding |
 | `callcopilot_needs_onboarding` | `'true'` / `'false'` | Whether to redirect to `/onboarding` after sign-in |
 | `callcopilot_tutorial_done` | `'true'` | Whether to suppress the tutorial overlay |
+| `callcopilot_voice` | `'auto' \| 'female' \| 'male'` | TTS voice gender preference (default: `'auto'`). Read by `services/tts.ts` at speak time. |
 
 ---
 
@@ -137,13 +139,16 @@ app/
 services/
   supabase.ts          ← Supabase client; uses localStorage on web, expo-secure-store on native
   claude.ts            ← Groq chat API: sendCallMessage(apiKey, goal, messages, language)
-  whisper.ts           ← Groq Whisper API: transcribeAudio(apiKey, uri)
+  whisper.ts           ← Groq Whisper API: transcribeAudio(apiKey, uri, language?) — language optional; omit for auto-detect
+  translate.ts         ← Groq translate-only: translateToEnglish(apiKey, text, language) → English string
+  tts.ts               ← expo-speech wrappers: speak(text, onDone?), stopSpeaking()
   history.ts           ← Supabase CRUD: saveCallSession(), loadCallSessions(), deleteCallSession()
 
 hooks/
   use-auth.ts          ← useAuth() → { session, user, loading, signIn, signUp, signOut }
   use-call-session.ts  ← useCallSession(goal, language) → { entries, isLoading, error, send }
   use-audio-recorder.ts← useAudioRecorder(apiKey, onTranscript) → { state, error, toggle }
+  use-speak-for-me.ts  ← useSpeakForMe(apiKey, language) → { state, error, lastSpoken, toggle, cancel }
   use-breakpoint.ts    ← useBreakpoint() → { bp, isMobile, isTablet, isDesktop, isWide, width }
   use-color-scheme.ts  ← Re-exports useColorScheme (native)
   use-color-scheme.web.ts ← SSR-safe useColorScheme (web)
@@ -326,9 +331,10 @@ All UI text is driven by `t(language)` from `constants/i18n.ts`.
 1. **Header** — "CallCopilot" wordmark (20px bold) + "Sign Out" text button in `#FF3B30`
 2. **Hero** — 34px bold language-specific title + personalized subtitle in `#6E6E73`
 3. **Language selector** — section label + horizontal-scroll pill chips. Inactive: white pill. Active: `#007AFF` border + blue tinted fill + blue text
-4. **Goal input** — white rounded card (`borderRadius: 14`) with a plain `TextInput`, no title above
-5. **Common tasks** — section label + horizontal-scroll preset pills. Active: solid `#007AFF` fill + white text
-6. **Start Call** — full-width solid `#007AFF` button, `borderRadius: 14`, 17px semibold
+4. **Voice selector** — inline row: "VOICE" label + 3 pill chips: `Auto`, `Female`, `Male`. Same chip style as language but no flag. Active chip: `#007AFF` border + blue tint. Persisted to `callcopilot_voice` in AsyncStorage. Loaded on mount alongside other preferences (uses `cancelled` ref to prevent StrictMode double-invoke from overwriting user selection).
+5. **Goal input** — white rounded card (`borderRadius: 14`) with a plain `TextInput`, no title above
+6. **Common tasks** — section label + horizontal-scroll preset pills. Active: solid `#007AFF` fill + white text
+7. **Start Call** — full-width solid `#007AFF` button, `borderRadius: 14`, 17px semibold
 
 **Removed:** gradient start card, `📞` emoji icon box, `👤` profile button, "tip" text at bottom.
 
@@ -345,12 +351,16 @@ All UI text is driven by `t(language)` from `constants/i18n.ts`.
 Route params: `goal` (string) + `language` (string).
 
 **Layout:**
-1. **Header** — "End" pill button in `#FF3B30` (left, replaces hardcoded "结束"); goal text in `#6E6E73` (center); language badge in `rgba(120,120,128,0.12)` fill (right). Hairline bottom border
-2. **ScrollView** — `#F2F2F7` bg, conversation entries, auto-scroll to bottom
-3. **Recording banner** — `rgba(255,59,48,0.06)` bg + `#FF3B30` dot + text when recording
-4. **Input bar** — mic button (gray fill, red tint when recording) + white rounded `TextInput` + solid `#007AFF` send pill
+1. **Header** — "End" pill button in `#FF3B30` (left); goal text in `#6E6E73` (center); language badge in `rgba(120,120,128,0.12)` fill (right). Hairline bottom border.
+2. **ScrollView** — `#F2F2F7` bg, conversation entries (`EntryView`), auto-scroll to bottom.
+3. **Loading row** — spinner + label: "Transcribing…" / "Translating…" / "Analyzing…" depending on which operation is active.
+4. **Banners (above input bar, stacked as needed):**
+   - **Agent recording** — red: `rgba(255,59,48,0.06)` bg + `#FF3B30` dot + "Recording — tap mic to stop"
+   - **Speak-for-me recording** — blue: `rgba(0,122,255,0.06)` bg + `#007AFF` dot + "Speak your reply — tap to stop"
+   - **Speak-for-me speaking** — blue banner showing the English translation being spoken + "■ Stop" pill button to cancel TTS
+5. **Input bar** — left-to-right: `🗣️` speak-for-me button (gray, blue tint when recording) + `🎙️` agent mic button (gray, red tint when recording) + white rounded `TextInput` + `#007AFF` "Send" pill. The two mic buttons are mutually exclusive — each disables the other when active.
 
-**End button:** was hardcoded `"结束"` (Chinese) — now shows `"End"` in English for all users.
+**Hooks used:** `useCallSession`, `useAudioRecorder`, `useSpeakForMe`, `useAuth`, `useBreakpoint`.
 
 On wide screens: entire screen constrained to `maxWidth: 800`, centered.
 
@@ -445,7 +455,24 @@ Creates the Supabase client. Uses `localStorage` on web, `expo-secure-store` on 
 - `parseResponse(text)` uses `indexOf` on bracket headers to extract sections
 
 ### `services/whisper.ts`
-`transcribeAudio(apiKey, uri)` — POSTs `audio/m4a` to Groq Whisper, returns transcript string.
+`transcribeAudio(apiKey, uri, language?)` — POSTs `audio/m4a` to Groq Whisper, returns transcript string.
+- `language` is optional. Omit it to let Whisper auto-detect the spoken language (used by Speak for Me). Pass `'en'` to force English transcription (used by the agent mic recorder).
+
+### `services/translate.ts`
+`translateToEnglish(apiKey, text, language)` — Sends a translate-only prompt to Groq (`llama-3.3-70b-versatile`). Returns a plain English string suitable for speaking aloud on a phone call. No explanation, no quotes — output only.
+
+### `services/tts.ts`
+`speak(text, onDone?)` — async. Reads `callcopilot_voice` from AsyncStorage, calls `pickVoice()` to select the best matching `expo-speech` voice, then calls `Speech.speak()`.
+- Always prefers **Enhanced quality** voices over Default quality — sounds dramatically more natural on iOS.
+- `pickVoice(pref)` filters to `en` voices, matches gender by name (known lists: `FEMALE_NAMES`, `MALE_NAMES`), falls back to `pool[0]` if no match.
+- Voices are cached in `voiceCache` (module-level) after the first `getAvailableVoicesAsync()` call.
+- `voice: undefined` is never passed to `Speech.speak()` — only set if a real identifier is found. This prevents silent failures on web where voices load asynchronously.
+- `rate: 0.92` applied globally — slightly slower than default, noticeably clearer.
+- Full try/catch: if anything fails, falls back to `Speech.speak(text, { language: 'en-US', rate: 0.92, onDone })`.
+
+`stopSpeaking()` — calls `Speech.stop()`.
+
+Exported: `VOICE_KEY = 'callcopilot_voice'`, `type VoicePreference = 'auto' | 'female' | 'male'`.
 
 ### `services/history.ts`
 - `saveCallSession(userId, goal, language, entries)` — inserts to `call_sessions` table
@@ -472,7 +499,17 @@ Passes `language` to `sendCallMessage`. Maintains full conversation `history` re
 ```ts
 useAudioRecorder(apiKey, onTranscript) → { state, error, toggle }
 ```
-`state`: `'idle' | 'recording' | 'transcribing'`. On stop: calls Whisper → passes transcript to `onTranscript` → auto-sends to AI.
+`state`: `'idle' | 'recording' | 'transcribing'`. On stop: calls `transcribeAudio(apiKey, uri, 'en')` (language forced to English) → passes transcript to `onTranscript` → auto-sends to AI.
+
+### `hooks/use-speak-for-me.ts`
+```ts
+useSpeakForMe(apiKey, language) → { state, error, lastSpoken, toggle, cancel }
+```
+`state`: `'idle' | 'recording' | 'processing' | 'speaking'`.
+Flow: user taps `toggle()` → records → tap again to stop → `transcribeAudio(apiKey, uri)` (no language hint — Whisper auto-detects native language) → `translateToEnglish()` → `speak()` → TTS plays English aloud → `state` returns to `'idle'` via `onDone` callback.
+- `lastSpoken` — the English translation string that was most recently spoken; shown in the blue speaking banner.
+- `cancel()` — stops TTS mid-speech, resets state to `'idle'`.
+- Two mics (agent mic + speak-for-me) are mutually exclusive: each disables the other when active.
 
 ### `hooks/use-breakpoint.ts`
 ```ts
@@ -496,7 +533,7 @@ Structure per entry:
    - `UNDERSTANDING` — body text `#000000`
    - `TRANSLATION` — body text `#000000`
    - `WHAT TO DO NEXT` — body text `#000000`
-   - `SUGGESTED REPLY` — **`#007AFF` bold 16px** — visually dominant as the primary action
+   - `SUGGESTED REPLY` — **`#007AFF` bold 16px** + `▶ Speak` / `■ Stop` pill button (blue/red) in the section header row. Tapping speaks the English text via `services/tts.ts`. Button state is local to each entry (`SuggestedReplySection` component). `.catch(() => setSpeaking(false))` prevents the button getting stuck if TTS fails.
    - `NOTES` (optional) — `#6E6E73` muted text
 
 **Removed:** all colored section backgrounds (blue/green/orange/teal), left border accents, "AGENT SAID" label above bubble, separate card per section.
@@ -556,7 +593,7 @@ npx expo start --web
 
 ---
 
-## Current State (end of session 5)
+## Current State (end of session 6)
 
 **Working:**
 - ✅ Sign up / log in with Supabase email auth (native only)
@@ -579,6 +616,14 @@ npx expo start --web
 - ✅ **Web-safe auth storage** — `localStorage` on web, `expo-secure-store` on native
 - ✅ **SPA web output** — `app.json` `web.output: "single"` prevents SSR crashes
 - ✅ **Apple-style UI redesign** — full redesign of all 9 screens/components (session 5)
+- ✅ **TTS on Suggested Reply** — `▶ Speak` / `■ Stop` pill button on every response card; uses `expo-speech`; also shown in History when reviewing past sessions
+- ✅ **Speak for Me** — `🗣️` button in input bar; user speaks in their language → Whisper transcribes (auto-detect) → Groq translates to English → TTS speaks aloud; blue banner shows spoken text with Stop button
+- ✅ **Voice selector** — Auto / Female / Male chips on home screen, persisted to `callcopilot_voice`; `tts.ts` reads preference and picks best matching Enhanced-quality English voice; `rate: 0.92` applied globally for clarity
+
+**Bugs fixed in session 6:**
+- `useEffect` in `index.tsx` now has a `cancelled` ref cleanup — prevents React StrictMode double-invoke from overwriting a user's voice chip selection with the stale AsyncStorage value
+- `tts.ts` no longer passes `voice: undefined` to `Speech.speak()` — only sets voice if a real identifier is found; prevents silent TTS failure on web where voices load asynchronously
+- `speak()` callers in `call-entry.tsx` and `use-speak-for-me.ts` now chain `.catch(() => resetState)` — prevents UI getting stuck in "■ Stop" or "speaking" state if TTS throws
 
 **Known limitations:**
 - iOS cannot capture live call audio — user must use speaker mode
@@ -605,6 +650,7 @@ npx expo start --web
 8. **Android continuous listen mode** — auto-loop recording in chunks
 9. **Profile screen** — edit name, language, use case; view account info
 10. **Backend API proxy** — move Groq key server-side before public launch
+11. **Richer voice picker** — show actual device voice names instead of Auto/Female/Male (useful on desktop where browser voices vary widely)
 
 ---
 

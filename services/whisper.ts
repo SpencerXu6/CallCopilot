@@ -1,4 +1,4 @@
-export async function transcribeAudio(apiKey: string, uri: string): Promise<string> {
+export async function transcribeAudio(apiKey: string, uri: string, language?: string): Promise<string> {
   const formData = new FormData();
   formData.append('file', {
     uri,
@@ -6,7 +6,7 @@ export async function transcribeAudio(apiKey: string, uri: string): Promise<stri
     name: 'recording.m4a',
   } as unknown as Blob);
   formData.append('model', 'whisper-large-v3-turbo');
-  formData.append('language', 'en');
+  if (language) formData.append('language', language);
 
   const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',

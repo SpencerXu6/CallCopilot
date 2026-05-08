@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/hooks/use-auth';
 import { t, PRESET_EN } from '@/constants/i18n';
+import { VOICE_KEY, type VoicePreference } from '@/services/tts';
 import { TutorialOverlay, TutorialStep } from '@/components/tutorial';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { SideNav } from '@/components/side-nav';
@@ -22,6 +23,12 @@ import { SideNav } from '@/components/side-nav';
 const LANGUAGE_KEY = 'callcopilot_language';
 const NAME_KEY = 'callcopilot_name';
 const TUTORIAL_KEY = 'callcopilot_tutorial_done';
+
+const VOICE_OPTIONS: { label: string; value: VoicePreference }[] = [
+  { label: 'Auto', value: 'auto' },
+  { label: 'Female', value: 'female' },
+  { label: 'Male', value: 'male' },
+];
 
 const LANGUAGES = [
   { label: '中文', name: 'Chinese', flag: '🇨🇳' },
@@ -65,6 +72,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 export default function HomeScreen() {
   const [goal, setGoal] = useState('');
   const [language, setLanguage] = useState('Chinese');
+  const [voice, setVoice] = useState<VoicePreference>('auto');
   const [name, setName] = useState('');
   const [tutorialStep, setTutorialStep] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -72,19 +80,29 @@ export default function HomeScreen() {
   const { isWide, isDesktop } = useBreakpoint();
 
   useEffect(() => {
-    AsyncStorage.multiGet([LANGUAGE_KEY, NAME_KEY, TUTORIAL_KEY]).then(pairs => {
+    let cancelled = false;
+    AsyncStorage.multiGet([LANGUAGE_KEY, NAME_KEY, TUTORIAL_KEY, VOICE_KEY]).then(pairs => {
+      if (cancelled) return;
       const lang = pairs[0][1];
       const savedName = pairs[1][1];
       const tutorialDone = pairs[2][1];
+      const savedVoice = pairs[3][1] as VoicePreference | null;
       if (lang) setLanguage(lang);
       if (savedName) setName(savedName);
       if (!tutorialDone) setShowTutorial(true);
+      if (savedVoice) setVoice(savedVoice);
     });
+    return () => { cancelled = true; };
   }, []);
 
   const selectLanguage = async (langName: string) => {
     setLanguage(langName);
     await AsyncStorage.setItem(LANGUAGE_KEY, langName);
+  };
+
+  const selectVoice = async (pref: VoicePreference) => {
+    setVoice(pref);
+    await AsyncStorage.setItem(VOICE_KEY, pref);
   };
 
   const startCall = () => {
@@ -204,6 +222,29 @@ export default function HomeScreen() {
                     {langChips}
                   </ScrollView>
                 )}
+              </View>
+
+              <View style={styles.voiceRow}>
+                <Text style={styles.voiceLabel}>Voice</Text>
+                <View style={styles.voiceChips}>
+                  {VOICE_OPTIONS.map(opt => {
+                    const active = voice === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() => selectVoice(opt.value)}
+                        style={({ pressed }) => [
+                          styles.voiceChip,
+                          active && styles.voiceChipActive,
+                          pressed && styles.pressed,
+                        ]}>
+                        <Text style={[styles.voiceChipText, active && styles.voiceChipTextActive]}>
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
 
               <View style={styles.section}>
@@ -341,6 +382,30 @@ const styles = StyleSheet.create({
   },
   presetText: { fontSize: 14, fontWeight: '500', color: '#000000' },
   presetTextActive: { color: '#FFFFFF' },
+
+  voiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    gap: 12,
+  },
+  voiceLabel: {
+    fontSize: 13, fontWeight: '600', color: '#6E6E73',
+    textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  voiceChips: { flexDirection: 'row', gap: 8 },
+  voiceChip: {
+    paddingHorizontal: 14, paddingVertical: 7,
+    backgroundColor: '#FFFFFF', borderRadius: 999,
+    borderWidth: 1.5, borderColor: 'transparent',
+  },
+  voiceChipActive: {
+    backgroundColor: 'rgba(0,122,255,0.08)',
+    borderColor: '#007AFF',
+  },
+  voiceChipText: { fontSize: 14, fontWeight: '500', color: '#6E6E73' },
+  voiceChipTextActive: { color: '#007AFF', fontWeight: '600' },
 
   ctaBtn: {
     backgroundColor: '#007AFF',

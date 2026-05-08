@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallSession } from '@/hooks/use-call-session';
 import { useAudioRecorder } from '@/hooks/use-audio-recorder';
+import { useSpeakForMe } from '@/hooks/use-speak-for-me';
 import { useAuth } from '@/hooks/use-auth';
 import { saveCallSession } from '@/services/history';
 import { EntryView } from '@/components/call-entry';
@@ -34,6 +35,13 @@ export default function CallScreen() {
     apiKey,
     (transcript) => send(transcript),
   );
+  const {
+    state: sfmState,
+    error: sfmError,
+    lastSpoken,
+    toggle: toggleSfm,
+    cancel: cancelSfm,
+  } = useSpeakForMe(apiKey, lang);
 
   useEffect(() => {
     if (entries.length > 0 || isLoading) {
@@ -66,6 +74,11 @@ export default function CallScreen() {
   const isTranscribing = recorderState === 'transcribing';
   const micBusy = isRecording || isTranscribing || isLoading;
   const canSend = !!input.trim() && !isLoading && !isRecording;
+
+  const sfmRecording = sfmState === 'recording';
+  const sfmProcessing = sfmState === 'processing';
+  const sfmSpeaking = sfmState === 'speaking';
+  const sfmBusy = sfmState !== 'idle';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -111,18 +124,18 @@ export default function CallScreen() {
               <EntryView key={entry.id} entry={entry} />
             ))}
 
-            {(isLoading || isTranscribing) && (
+            {(isLoading || isTranscribing || sfmProcessing) && (
               <View style={styles.loadingRow}>
                 <ActivityIndicator size="small" color="#007AFF" />
                 <Text style={styles.loadingText}>
-                  {isTranscribing ? 'Transcribing…' : 'Analyzing…'}
+                  {isTranscribing ? 'Transcribing…' : sfmProcessing ? 'Translating…' : 'Analyzing…'}
                 </Text>
               </View>
             )}
 
-            {(error || recorderError) ? (
+            {(error || recorderError || sfmError) ? (
               <View style={styles.errorBanner}>
-                <Text style={styles.errorText}>{error ?? recorderError}</Text>
+                <Text style={styles.errorText}>{error ?? recorderError ?? sfmError}</Text>
               </View>
             ) : null}
           </ScrollView>
@@ -134,14 +147,49 @@ export default function CallScreen() {
             </View>
           )}
 
+          {sfmRecording && (
+            <View style={styles.sfmRecordingBanner}>
+              <View style={styles.sfmRecordingDot} />
+              <Text style={styles.sfmRecordingText}>Speak your reply — tap to stop</Text>
+            </View>
+          )}
+
+          {sfmSpeaking && lastSpoken && (
+            <View style={styles.sfmSpeakingBanner}>
+              <Pressable
+                onPress={cancelSfm}
+                style={({ pressed }) => [styles.sfmStopBtn, pressed && styles.pressed]}>
+                <Text style={styles.sfmStopBtnText}>■ Stop</Text>
+              </Pressable>
+              <Text style={styles.sfmSpeakingText} numberOfLines={2}>{lastSpoken}</Text>
+            </View>
+          )}
+
           <View style={styles.inputBar}>
             <Pressable
+              onPress={toggleSfm}
+              disabled={micBusy || sfmProcessing || sfmSpeaking}
+              style={({ pressed }) => [
+                styles.sfmBtn,
+                sfmRecording && styles.sfmBtnActive,
+                (micBusy || sfmProcessing || sfmSpeaking) && styles.btnDisabled,
+                pressed && styles.pressed,
+              ]}>
+              {sfmProcessing
+                ? <ActivityIndicator size="small" color="#007AFF" />
+                : <Text style={styles.sfmBtnIcon}>
+                    {sfmRecording ? '⏹' : '🗣️'}
+                  </Text>
+              }
+            </Pressable>
+
+            <Pressable
               onPress={toggleRecorder}
-              disabled={isTranscribing || isLoading}
+              disabled={isTranscribing || isLoading || sfmBusy}
               style={({ pressed }) => [
                 styles.micBtn,
                 isRecording && styles.micBtnActive,
-                (isTranscribing || isLoading) && styles.micBtnDisabled,
+                (isTranscribing || isLoading || sfmBusy) && styles.btnDisabled,
                 pressed && styles.pressed,
               ]}>
               {isTranscribing
@@ -161,7 +209,7 @@ export default function CallScreen() {
               onSubmitEditing={handleSend}
               returnKeyType="send"
               multiline
-              editable={!micBusy}
+              editable={!micBusy && !sfmBusy}
             />
 
             <Pressable
@@ -257,6 +305,29 @@ const styles = StyleSheet.create({
   recordingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FF3B30' },
   recordingText: { fontSize: 13, color: '#FF3B30', fontWeight: '600' },
 
+  sfmRecordingBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,122,255,0.06)',
+    paddingVertical: 10, gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(0,122,255,0.2)',
+  },
+  sfmRecordingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#007AFF' },
+  sfmRecordingText: { fontSize: 13, color: '#007AFF', fontWeight: '600' },
+
+  sfmSpeakingBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(0,122,255,0.06)',
+    paddingVertical: 10, paddingHorizontal: 14, gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(0,122,255,0.2)',
+  },
+  sfmStopBtn: {
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,122,255,0.12)',
+  },
+  sfmStopBtnText: { fontSize: 12, fontWeight: '600', color: '#007AFF' },
+  sfmSpeakingText: { flex: 1, fontSize: 13, color: '#007AFF', fontWeight: '500', lineHeight: 18 },
+
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end',
     paddingHorizontal: 12, paddingVertical: 10,
@@ -264,13 +335,20 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#C6C6C8',
     gap: 8,
   },
+  sfmBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(120,120,128,0.12)',
+    alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end',
+  },
+  sfmBtnActive: { backgroundColor: 'rgba(0,122,255,0.14)' },
+  sfmBtnIcon: { fontSize: 20 },
   micBtn: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: 'rgba(120,120,128,0.12)',
     alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end',
   },
   micBtnActive: { backgroundColor: 'rgba(255,59,48,0.12)' },
-  micBtnDisabled: { opacity: 0.4 },
+  btnDisabled: { opacity: 0.4 },
   micIcon: { fontSize: 20 },
   micIconActive: {},
   input: {

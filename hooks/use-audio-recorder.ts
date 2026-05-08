@@ -40,7 +40,7 @@ export function useAudioRecorder(apiKey: string, onTranscript: (text: string) =>
       const uri = recordingRef.current.getURI();
       recordingRef.current = null;
       if (uri) {
-        const transcript = await transcribeAudio(apiKey, uri);
+        const transcript = await transcribeAudio(apiKey, uri, 'en');
         if (transcript) onTranscript(transcript);
       }
     } catch {
