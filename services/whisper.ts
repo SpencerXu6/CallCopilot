@@ -1,10 +1,15 @@
-export async function transcribeAudio(apiKey: string, uri: string, language?: string): Promise<string> {
+export async function transcribeAudio(apiKey: string, source: string | Blob, language?: string): Promise<string> {
   const formData = new FormData();
-  formData.append('file', {
-    uri,
-    type: 'audio/m4a',
-    name: 'recording.m4a',
-  } as unknown as Blob);
+  if (source instanceof Blob) {
+    const ext = source.type.split('/')[1]?.split(';')[0] ?? 'webm';
+    formData.append('file', source, `recording.${ext}`);
+  } else {
+    formData.append('file', {
+      uri: source,
+      type: 'audio/m4a',
+      name: 'recording.m4a',
+    } as unknown as Blob);
+  }
   formData.append('model', 'whisper-large-v3-turbo');
   if (language) formData.append('language', language);
 

@@ -26,6 +26,9 @@ The user will provide:
 
 * A goal (in their language or English)
 * Real-time transcriptions of the phone call (from the agent)
+* Entries marked [Customer replied in English]: "..." showing what the customer already said in English
+
+When you see a [Customer replied in English] entry, acknowledge what was already said and tailor your next guidance based on that context — do not re-suggest the same reply.
 
 You must always align your guidance with the user's goal.
 

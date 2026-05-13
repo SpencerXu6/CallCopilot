@@ -1,4 +1,6 @@
+import { Platform } from 'react-native';
 import { useRef, useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import { sendCallMessage, ParsedResponse } from '@/services/claude';
 
 export interface CallEntry {
@@ -16,6 +18,13 @@ export function useCallSession(goal: string, language = 'Chinese') {
 
   const history = useRef<HistoryMessage[]>([]);
   const apiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY ?? '';
+
+  const recordCustomerReply = (englishText: string) => {
+    history.current.push({
+      role: 'user',
+      content: `[Customer replied in English]: "${englishText}"`,
+    });
+  };
 
   const send = async (agentText: string) => {
     if (!agentText.trim() || isLoading) return;
@@ -44,6 +53,9 @@ export function useCallSession(goal: string, language = 'Chinese') {
         ...prev,
         { id: Date.now().toString(), agentText, response: parsed },
       ]);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
     } catch (e) {
       history.current.pop();
       setError(e instanceof Error ? e.message : 'Failed to get response. Check your connection.');
@@ -52,5 +64,5 @@ export function useCallSession(goal: string, language = 'Chinese') {
     }
   };
 
-  return { entries, isLoading, error, send };
+  return { entries, isLoading, error, send, recordCustomerReply };
 }

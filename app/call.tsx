@@ -23,7 +23,7 @@ import { useBreakpoint } from '@/hooks/use-breakpoint';
 export default function CallScreen() {
   const { goal, language } = useLocalSearchParams<{ goal: string; language: string }>();
   const lang = language ?? 'Chinese';
-  const { entries, isLoading, error, send } = useCallSession(goal ?? '', lang);
+  const { entries, isLoading, error, send, recordCustomerReply } = useCallSession(goal ?? '', lang);
   const [input, setInput] = useState('');
   const [saving, setSaving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -41,7 +41,7 @@ export default function CallScreen() {
     lastSpoken,
     toggle: toggleSfm,
     cancel: cancelSfm,
-  } = useSpeakForMe(apiKey, lang);
+  } = useSpeakForMe(apiKey, lang, recordCustomerReply);
 
   useEffect(() => {
     if (entries.length > 0 || isLoading) {

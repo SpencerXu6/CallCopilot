@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CallCopilot — 打好每一个英文电话</title>
-  <meta name="description" content="AI-powered bilingual call assistant for Chinese speakers in the US. Get real-time translation, guidance, and ready-to-speak replies during any English phone call." />
+  <title>LingoLine — 打好每一个英文电话</title>
+  <meta name="description" content="AI-powered multilingual call assistant for non-native English speakers in the US. Get real-time translation, guidance, and ready-to-speak replies during any English phone call." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
@@ -67,10 +67,13 @@
     .nav-logo-box {
       width: 36px; height: 36px;
       border-radius: 10px;
-      background: var(--slate-900);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 17px;
+      overflow: hidden;
       flex-shrink: 0;
+    }
+
+    .nav-logo-box img {
+      width: 100%; height: 100%;
+      display: block;
     }
 
     .nav-logo-name {
@@ -646,9 +649,13 @@
     footer .footer-logo-box {
       width: 30px; height: 30px;
       border-radius: 8px;
-      background: var(--slate-900);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    footer .footer-logo-box img {
+      width: 100%; height: 100%;
+      display: block;
     }
 
     footer .footer-logo-name {
@@ -705,8 +712,8 @@
   <!-- NAV -->
   <nav>
     <a href="#" class="nav-logo">
-      <div class="nav-logo-box">📞</div>
-      <span class="nav-logo-name">CallCopilot</span>
+      <div class="nav-logo-box"><img src="../assets/images/logo.png" alt="LingoLine logo" /></div>
+      <span class="nav-logo-name">LingoLine</span>
     </a>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
@@ -728,7 +735,7 @@
         <span class="zh">打好每一个英文电话</span>
       </h1>
       <p class="hero-sub">
-        CallCopilot listens to what the agent says and instantly gives you a Chinese explanation, a full translation, and a ready-to-speak English reply — so you always know what to say next.
+        LingoLine listens to what the agent says and instantly gives you an explanation in your language, a full translation, and a ready-to-speak English reply — so you always know what to say next.
       </p>
       <div class="hero-cta-row">
         <a href="#cta" class="btn-primary">📱 Download Free</a>
@@ -781,7 +788,7 @@
     <div class="section-inner">
       <span class="section-label">Features</span>
       <h2 class="section-title">Everything you need<br>on a tough call</h2>
-      <p class="section-sub">No more guessing, no more panic. CallCopilot gives you everything you need to navigate any English phone call with confidence.</p>
+      <p class="section-sub">No more guessing, no more panic. LingoLine gives you everything you need to navigate any English phone call with confidence — in Chinese, Spanish, French, Korean, and more.</p>
 
       <div class="features-grid">
         <div class="feature-card">
@@ -823,7 +830,7 @@
     <div class="section-inner">
       <span class="section-label">How it works</span>
       <h2 class="section-title">Three steps to a<br>confident call</h2>
-      <p class="section-sub">Open the app before you dial. CallCopilot stays open in the background, ready whenever you need it.</p>
+      <p class="section-sub">Open the app before you dial. LingoLine stays open in the background, ready whenever you need it.</p>
 
       <div class="steps">
         <div class="step">
@@ -834,7 +841,7 @@
         <div class="step">
           <div class="step-number">2</div>
           <h3>Record the Agent</h3>
-          <p>Put your phone on speaker. Tap the mic button and let CallCopilot transcribe what the agent is saying.</p>
+          <p>Put your phone on speaker. Tap the mic button and let LingoLine transcribe what the agent is saying.</p>
         </div>
         <div class="step">
           <div class="step-number">3</div>
@@ -909,7 +916,7 @@
     <div class="cta-card">
       <div>
         <h2>Start your next call<br>with confidence</h2>
-        <p>Free to download. No account needed. Just open the app, enter your goal, and let CallCopilot do the rest.</p>
+        <p>Free to download. No account needed. Just open the app, enter your goal, and let LingoLine do the rest.</p>
       </div>
       <a href="#" class="btn-white">📱 Download for iOS</a>
     </div>
@@ -918,10 +925,10 @@
   <!-- FOOTER -->
   <footer>
     <a href="#" class="footer-logo">
-      <div class="footer-logo-box">📞</div>
-      <span class="footer-logo-name">CallCopilot</span>
+      <div class="footer-logo-box"><img src="../assets/images/logo.png" alt="LingoLine logo" /></div>
+      <span class="footer-logo-name">LingoLine</span>
     </a>
-    <span class="footer-copy">Built for Chinese speakers navigating life in America.</span>
+    <span class="footer-copy">Built for non-native English speakers navigating life in America.</span>
   </footer>
 
 </body>

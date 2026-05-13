@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -19,32 +18,27 @@ function AuthGuard() {
     const inAuth = current === 'auth';
     const inOnboarding = current === 'onboarding';
 
-    // On web, skip auth entirely — users access the app as guests
-    if (Platform.OS === 'web') return;
+    AsyncStorage.getItem('callcopilot_guest').then(val => {
+      if (val === 'true') return;
 
-    if (!session && !inAuth) {
-      router.replace('/auth' as never);
-      return;
-    }
+      if (!session && !inAuth) {
+        router.replace('/auth' as never);
+        return;
+      }
 
-    if (session && inAuth) {
-      AsyncStorage.getItem('callcopilot_needs_onboarding').then(flag => {
-        if (flag === 'true') {
-          router.replace('/onboarding' as never);
-        } else {
-          router.replace('/');
-        }
-      });
-      return;
-    }
+      if (session && inAuth) {
+        AsyncStorage.getItem('callcopilot_needs_onboarding').then(flag => {
+          router.replace(flag === 'true' ? '/onboarding' as never : '/');
+        });
+        return;
+      }
 
-    if (session && !inOnboarding && !inAuth) {
-      AsyncStorage.getItem('callcopilot_needs_onboarding').then(flag => {
-        if (flag === 'true') {
-          router.replace('/onboarding' as never);
-        }
-      });
-    }
+      if (session && !inOnboarding && !inAuth) {
+        AsyncStorage.getItem('callcopilot_needs_onboarding').then(flag => {
+          if (flag === 'true') router.replace('/onboarding' as never);
+        });
+      }
+    });
   }, [session, loading, segments]);
 
   return null;

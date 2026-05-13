@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -66,10 +67,11 @@ export default function OnboardingScreen() {
         {step === 0 && (
           <View style={styles.welcomeScreen}>
             <View style={styles.welcomeContent}>
-              <View style={styles.logoMark}>
-                <Text style={styles.logoMarkText}>C</Text>
-              </View>
-              <Text style={styles.welcomeTitle}>Welcome to{'\n'}CallCopilot</Text>
+              <Image
+                source={require('../assets/images/logo.png')}
+                style={styles.logoImage}
+              />
+              <Text style={styles.welcomeTitle}>Welcome to{'\n'}LingoLine</Text>
               <Text style={styles.welcomeSub}>
                 Your AI assistant for English phone calls, explained in your language.
               </Text>
@@ -162,7 +164,7 @@ export default function OnboardingScreen() {
         {/* Step 3: Use Case */}
         {step === 3 && (
           <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.stepTitle}>What will you use{'\n'}CallCopilot for?</Text>
+            <Text style={styles.stepTitle}>What will you use{'\n'}LingoLine for?</Text>
             <Text style={styles.stepSub}>Helps us tailor guidance to your situation.</Text>
             <View style={styles.useCaseCard}>
               {USE_CASES.map((uc, i) => {
@@ -217,13 +219,7 @@ const styles = StyleSheet.create({
 
   welcomeScreen: { flex: 1, justifyContent: 'space-between' },
   welcomeContent: { paddingHorizontal: 28, paddingTop: 56 },
-  logoMark: {
-    width: 56, height: 56, borderRadius: 14,
-    backgroundColor: '#000000',
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 32,
-  },
-  logoMarkText: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
+  logoImage: { width: 80, height: 80, borderRadius: 18, marginBottom: 32 },
   welcomeTitle: {
     fontSize: 34, fontWeight: '700', color: '#000000',
     lineHeight: 40, letterSpacing: -0.5, marginBottom: 12,

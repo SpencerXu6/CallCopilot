@@ -11,11 +11,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/hooks/use-auth';
 import { t, PRESET_EN } from '@/constants/i18n';
-import { VOICE_KEY, type VoicePreference } from '@/services/tts';
 import { TutorialOverlay, TutorialStep } from '@/components/tutorial';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { SideNav } from '@/components/side-nav';
@@ -24,11 +24,6 @@ const LANGUAGE_KEY = 'callcopilot_language';
 const NAME_KEY = 'callcopilot_name';
 const TUTORIAL_KEY = 'callcopilot_tutorial_done';
 
-const VOICE_OPTIONS: { label: string; value: VoicePreference }[] = [
-  { label: 'Auto', value: 'auto' },
-  { label: 'Female', value: 'female' },
-  { label: 'Male', value: 'male' },
-];
 
 const LANGUAGES = [
   { label: '中文', name: 'Chinese', flag: '🇨🇳' },
@@ -72,25 +67,22 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 export default function HomeScreen() {
   const [goal, setGoal] = useState('');
   const [language, setLanguage] = useState('Chinese');
-  const [voice, setVoice] = useState<VoicePreference>('auto');
   const [name, setName] = useState('');
   const [tutorialStep, setTutorialStep] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { isWide, isDesktop } = useBreakpoint();
 
   useEffect(() => {
     let cancelled = false;
-    AsyncStorage.multiGet([LANGUAGE_KEY, NAME_KEY, TUTORIAL_KEY, VOICE_KEY]).then(pairs => {
+    AsyncStorage.multiGet([LANGUAGE_KEY, NAME_KEY, TUTORIAL_KEY]).then(pairs => {
       if (cancelled) return;
       const lang = pairs[0][1];
       const savedName = pairs[1][1];
       const tutorialDone = pairs[2][1];
-      const savedVoice = pairs[3][1] as VoicePreference | null;
       if (lang) setLanguage(lang);
       if (savedName) setName(savedName);
       if (!tutorialDone) setShowTutorial(true);
-      if (savedVoice) setVoice(savedVoice);
     });
     return () => { cancelled = true; };
   }, []);
@@ -98,11 +90,6 @@ export default function HomeScreen() {
   const selectLanguage = async (langName: string) => {
     setLanguage(langName);
     await AsyncStorage.setItem(LANGUAGE_KEY, langName);
-  };
-
-  const selectVoice = async (pref: VoicePreference) => {
-    setVoice(pref);
-    await AsyncStorage.setItem(VOICE_KEY, pref);
   };
 
   const startCall = () => {
@@ -184,31 +171,47 @@ export default function HomeScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
 
-            {!isWide && (
-              <View style={styles.header}>
-                <Text style={styles.wordmark}>CallCopilot</Text>
-                <Pressable
-                  onPress={handleSignOut}
-                  style={({ pressed }) => [styles.signOutBtn, pressed && styles.pressed]}>
-                  <Text style={styles.signOutText}>Sign Out</Text>
-                </Pressable>
+            <LinearGradient
+              colors={['#EBF4FF', '#F2F2F7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.heroGradient}>
+              {!isWide && (
+                <View style={styles.header}>
+                  <Text style={styles.wordmark}>LingoLine</Text>
+                  {user ? (
+                    <Pressable
+                      onPress={handleSignOut}
+                      style={({ pressed }) => [styles.signOutBtn, pressed && styles.pressed]}>
+                      <Text style={styles.signOutText}>Sign Out</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      onPress={async () => {
+                        await AsyncStorage.setItem('callcopilot_guest', 'false');
+                        router.replace('/auth' as never);
+                      }}
+                      style={({ pressed }) => [styles.signOutBtn, pressed && styles.pressed]}>
+                      <Text style={styles.signInText}>Sign In</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+              <View style={[styles.inner, isWide && styles.innerWide]}>
+                <View style={[styles.hero, isWide && styles.heroWide]}>
+                  <Text style={[styles.heroTitle, isDesktop && styles.heroTitleLg]}>
+                    {strings.heroTitle}
+                  </Text>
+                  {name ? (
+                    <Text style={styles.heroSub}>{name} — {strings.heroSub}</Text>
+                  ) : (
+                    <Text style={styles.heroSub}>{strings.heroSub}</Text>
+                  )}
+                </View>
               </View>
-            )}
+            </LinearGradient>
 
             <View style={[styles.inner, isWide && styles.innerWide]}>
-
-              <View style={[styles.hero, isWide && styles.heroWide]}>
-                <Text style={[styles.heroTitle, isDesktop && styles.heroTitleLg]}>
-                  {strings.heroTitle}
-                </Text>
-                {name ? (
-                  <Text style={styles.heroSub}>
-                    {name} — {strings.heroSub}
-                  </Text>
-                ) : (
-                  <Text style={styles.heroSub}>{strings.heroSub}</Text>
-                )}
-              </View>
 
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>{strings.myLanguage}</Text>
@@ -222,29 +225,6 @@ export default function HomeScreen() {
                     {langChips}
                   </ScrollView>
                 )}
-              </View>
-
-              <View style={styles.voiceRow}>
-                <Text style={styles.voiceLabel}>Voice</Text>
-                <View style={styles.voiceChips}>
-                  {VOICE_OPTIONS.map(opt => {
-                    const active = voice === opt.value;
-                    return (
-                      <Pressable
-                        key={opt.value}
-                        onPress={() => selectVoice(opt.value)}
-                        style={({ pressed }) => [
-                          styles.voiceChip,
-                          active && styles.voiceChipActive,
-                          pressed && styles.pressed,
-                        ]}>
-                        <Text style={[styles.voiceChipText, active && styles.voiceChipTextActive]}>
-                          {opt.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
               </View>
 
               <View style={styles.section}>
@@ -312,7 +292,9 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
 
   inner: { width: '100%' },
-  innerWide: { maxWidth: 680, alignSelf: 'center' },
+  innerWide: { maxWidth: 800, alignSelf: 'center' },
+
+  heroGradient: { paddingBottom: 4 },
 
   header: {
     flexDirection: 'row',
@@ -325,6 +307,7 @@ const styles = StyleSheet.create({
   wordmark: { fontSize: 20, fontWeight: '700', color: '#000000', letterSpacing: -0.4 },
   signOutBtn: { paddingVertical: 6, paddingHorizontal: 4 },
   signOutText: { fontSize: 15, color: '#FF3B30', fontWeight: '500' },
+  signInText: { fontSize: 15, color: '#007AFF', fontWeight: '500' },
 
   hero: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 32 },
   heroWide: { paddingTop: 48 },
@@ -359,8 +342,14 @@ const styles = StyleSheet.create({
   langLabelActive: { color: '#007AFF', fontWeight: '600' },
 
   goalCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 14,
-    marginHorizontal: 20, overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   goalInput: {
     paddingHorizontal: 16, paddingVertical: 14,
@@ -383,30 +372,6 @@ const styles = StyleSheet.create({
   presetText: { fontSize: 14, fontWeight: '500', color: '#000000' },
   presetTextActive: { color: '#FFFFFF' },
 
-  voiceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    gap: 12,
-  },
-  voiceLabel: {
-    fontSize: 13, fontWeight: '600', color: '#6E6E73',
-    textTransform: 'uppercase', letterSpacing: 0.4,
-  },
-  voiceChips: { flexDirection: 'row', gap: 8 },
-  voiceChip: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    backgroundColor: '#FFFFFF', borderRadius: 999,
-    borderWidth: 1.5, borderColor: 'transparent',
-  },
-  voiceChipActive: {
-    backgroundColor: 'rgba(0,122,255,0.08)',
-    borderColor: '#007AFF',
-  },
-  voiceChipText: { fontSize: 14, fontWeight: '500', color: '#6E6E73' },
-  voiceChipTextActive: { color: '#007AFF', fontWeight: '600' },
-
   ctaBtn: {
     backgroundColor: '#007AFF',
     borderRadius: 14,
@@ -414,6 +379,11 @@ const styles = StyleSheet.create({
     paddingVertical: 17,
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
   },
   ctaBtnDisabled: { opacity: 0.35 },
   ctaBtnText: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },

@@ -6,7 +6,7 @@ import { speak, stopSpeaking } from '@/services/tts';
 
 export type SpeakForMeState = 'idle' | 'recording' | 'processing' | 'speaking';
 
-export function useSpeakForMe(apiKey: string, language: string) {
+export function useSpeakForMe(apiKey: string, language: string, onSpoken?: (text: string) => void) {
   const [state, setState] = useState<SpeakForMeState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [lastSpoken, setLastSpoken] = useState<string | null>(null);
@@ -50,6 +50,7 @@ export function useSpeakForMe(apiKey: string, language: string) {
       if (!english) { setState('idle'); return; }
 
       setLastSpoken(english);
+      onSpoken?.(english);
       setState('speaking');
       speak(english, () => setState('idle')).catch(() => setState('idle'));
     } catch (e: unknown) {
