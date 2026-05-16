@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallSession } from '@/hooks/use-call-session';
 import { useAudioRecorder } from '@/hooks/use-audio-recorder';
+import { useVadRecorder } from '@/hooks/use-vad-recorder';
 import { useSpeakForMe } from '@/hooks/use-speak-for-me';
 import { useAuth } from '@/hooks/use-auth';
 import { saveCallSession } from '@/services/history';
@@ -35,6 +36,10 @@ export default function CallScreen() {
     apiKey,
     (transcript) => send(transcript),
   );
+  const { state: vadState, liveText: vadLiveText, error: vadError, start: startVad, stop: stopVad } = useVadRecorder(
+    apiKey,
+    (transcript) => send(transcript),
+  );
   const {
     state: sfmState,
     error: sfmError,
@@ -49,6 +54,8 @@ export default function CallScreen() {
     }
   }, [entries, isLoading]);
 
+  useEffect(() => () => { stopVad(); }, []);
+
   const handleSend = () => {
     const text = input.trim();
     if (!text || isLoading) return;
@@ -57,6 +64,7 @@ export default function CallScreen() {
   };
 
   const handleEnd = async () => {
+    stopVad();
     if (user && entries.length > 0) {
       setSaving(true);
       try {
@@ -79,6 +87,9 @@ export default function CallScreen() {
   const sfmProcessing = sfmState === 'processing';
   const sfmSpeaking = sfmState === 'speaking';
   const sfmBusy = sfmState !== 'idle';
+
+  const vadActive = vadState !== 'idle';
+  const vadListening = vadState === 'listening';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -116,7 +127,7 @@ export default function CallScreen() {
                   <Text style={styles.emptyEmoji}>👂</Text>
                 </View>
                 <Text style={styles.emptyTitle}>Ready</Text>
-                <Text style={styles.emptySub}>Tap the mic to record, or type below</Text>
+                <Text style={styles.emptySub}>Tap 👂 Auto to listen hands-free, or 🎙️ to record manually</Text>
               </View>
             )}
 
@@ -133,9 +144,9 @@ export default function CallScreen() {
               </View>
             )}
 
-            {(error || recorderError || sfmError) ? (
+            {(error || recorderError || sfmError || vadError) ? (
               <View style={styles.errorBanner}>
-                <Text style={styles.errorText}>{error ?? recorderError ?? sfmError}</Text>
+                <Text style={styles.errorText}>{error ?? recorderError ?? sfmError ?? vadError}</Text>
               </View>
             ) : null}
           </ScrollView>
@@ -144,6 +155,21 @@ export default function CallScreen() {
             <View style={styles.recordingBanner}>
               <View style={styles.recordingDot} />
               <Text style={styles.recordingText}>Recording — tap mic to stop</Text>
+            </View>
+          )}
+
+          {vadListening && (
+            <View style={styles.vadBanner}>
+              <View style={styles.vadDot} />
+              <Text style={styles.vadBannerText}>
+                {vadLiveText ? 'Heard:' : 'Auto-listening…'}
+              </Text>
+            </View>
+          )}
+
+          {vadListening && !!vadLiveText && (
+            <View style={styles.vadLiveBox}>
+              <Text style={styles.vadLiveText}>{vadLiveText}</Text>
             </View>
           )}
 
@@ -168,11 +194,11 @@ export default function CallScreen() {
           <View style={styles.inputBar}>
             <Pressable
               onPress={toggleSfm}
-              disabled={micBusy || sfmProcessing || sfmSpeaking}
+              disabled={micBusy || vadActive || sfmProcessing || sfmSpeaking}
               style={({ pressed }) => [
                 styles.sfmBtn,
                 sfmRecording && styles.sfmBtnActive,
-                (micBusy || sfmProcessing || sfmSpeaking) && styles.btnDisabled,
+                (micBusy || vadActive || sfmProcessing || sfmSpeaking) && styles.btnDisabled,
                 pressed && styles.pressed,
               ]}>
               {sfmProcessing
@@ -185,11 +211,11 @@ export default function CallScreen() {
 
             <Pressable
               onPress={toggleRecorder}
-              disabled={isTranscribing || isLoading || sfmBusy}
+              disabled={isTranscribing || isLoading || sfmBusy || vadActive}
               style={({ pressed }) => [
                 styles.micBtn,
                 isRecording && styles.micBtnActive,
-                (isTranscribing || isLoading || sfmBusy) && styles.btnDisabled,
+                (isTranscribing || isLoading || sfmBusy || vadActive) && styles.btnDisabled,
                 pressed && styles.pressed,
               ]}>
               {isTranscribing
@@ -198,6 +224,18 @@ export default function CallScreen() {
                     {isRecording ? '⏹' : '🎙️'}
                   </Text>
               }
+            </Pressable>
+
+            <Pressable
+              onPress={vadActive ? stopVad : startVad}
+              disabled={isRecording || sfmBusy}
+              style={({ pressed }) => [
+                styles.autoBtn,
+                vadActive && styles.autoBtnActive,
+                (isRecording || sfmBusy) && styles.btnDisabled,
+                pressed && styles.pressed,
+              ]}>
+              <Text style={styles.autoBtnIcon}>👂</Text>
             </Pressable>
 
             <TextInput
@@ -305,6 +343,22 @@ const styles = StyleSheet.create({
   recordingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FF3B30' },
   recordingText: { fontSize: 13, color: '#FF3B30', fontWeight: '600' },
 
+  vadBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(52,199,89,0.06)',
+    paddingVertical: 10, gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(52,199,89,0.2)',
+  },
+  vadDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#34C759' },
+  vadBannerText: { fontSize: 13, color: '#34C759', fontWeight: '600' },
+  vadLiveBox: {
+    marginHorizontal: 12, marginBottom: 4,
+    backgroundColor: 'rgba(52,199,89,0.06)',
+    borderLeftWidth: 3, borderLeftColor: '#34C759',
+    borderRadius: 8, padding: 10,
+  },
+  vadLiveText: { fontSize: 14, color: '#1C1C1E', lineHeight: 20 },
+
   sfmRecordingBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(0,122,255,0.06)',
@@ -351,6 +405,13 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.4 },
   micIcon: { fontSize: 20 },
   micIconActive: {},
+  autoBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(120,120,128,0.12)',
+    alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end',
+  },
+  autoBtnActive: { backgroundColor: 'rgba(52,199,89,0.14)' },
+  autoBtnIcon: { fontSize: 20 },
   input: {
     flex: 1,
     backgroundColor: '#FFFFFF',

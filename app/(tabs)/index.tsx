@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/hooks/use-auth';
-import { t, PRESET_EN } from '@/constants/i18n';
+import { t, PRESET_EN, PRESETS_BY_USE_CASE } from '@/constants/i18n';
 import { TutorialOverlay, TutorialStep } from '@/components/tutorial';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { SideNav } from '@/components/side-nav';
@@ -23,6 +23,7 @@ import { SideNav } from '@/components/side-nav';
 const LANGUAGE_KEY = 'callcopilot_language';
 const NAME_KEY = 'callcopilot_name';
 const TUTORIAL_KEY = 'callcopilot_tutorial_done';
+const USE_CASE_KEY = 'callcopilot_use_case';
 
 
 const LANGUAGES = [
@@ -68,6 +69,7 @@ export default function HomeScreen() {
   const [goal, setGoal] = useState('');
   const [language, setLanguage] = useState('Chinese');
   const [name, setName] = useState('');
+  const [useCase, setUseCase] = useState('');
   const [tutorialStep, setTutorialStep] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
   const { signOut, user } = useAuth();
@@ -75,14 +77,16 @@ export default function HomeScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    AsyncStorage.multiGet([LANGUAGE_KEY, NAME_KEY, TUTORIAL_KEY]).then(pairs => {
+    AsyncStorage.multiGet([LANGUAGE_KEY, NAME_KEY, TUTORIAL_KEY, USE_CASE_KEY]).then(pairs => {
       if (cancelled) return;
       const lang = pairs[0][1];
       const savedName = pairs[1][1];
       const tutorialDone = pairs[2][1];
+      const savedUseCase = pairs[3][1];
       if (lang) setLanguage(lang);
       if (savedName) setName(savedName);
       if (!tutorialDone) setShowTutorial(true);
+      if (savedUseCase) setUseCase(savedUseCase);
     });
     return () => { cancelled = true; };
   }, []);
@@ -121,9 +125,17 @@ export default function HomeScreen() {
 
   const strings = t(language);
   const canStart = goal.trim().length > 0;
-  const presets = strings.presets;
 
-  const langChips = LANGUAGES.map(lang => {
+  // Put the saved language first, keep the rest in original order
+  const orderedLanguages = [
+    ...LANGUAGES.filter(l => l.name === language),
+    ...LANGUAGES.filter(l => l.name !== language),
+  ];
+
+  // Use case-specific presets when set; fall back to the generic 6
+  const useCasePresets = useCase && useCase !== 'Other' ? PRESETS_BY_USE_CASE[useCase] : null;
+
+  const langChips = orderedLanguages.map(lang => {
     const active = language === lang.name;
     return (
       <Pressable
@@ -140,23 +152,42 @@ export default function HomeScreen() {
     );
   });
 
-  const presetCards = PRESET_EN.map((en, i) => {
-    const active = goal === en;
-    return (
-      <Pressable
-        key={en}
-        style={({ pressed }) => [
-          styles.presetChip,
-          active && styles.presetChipActive,
-          pressed && styles.pressed,
-        ]}
-        onPress={() => setGoal(en)}>
-        <Text style={[styles.presetText, active && styles.presetTextActive]} numberOfLines={2}>
-          {presets[i] ?? en}
-        </Text>
-      </Pressable>
-    );
-  });
+  const presetCards = useCasePresets
+    ? useCasePresets.map(entry => {
+        const active = goal === entry.en;
+        const display = entry[language] ?? entry.en;
+        return (
+          <Pressable
+            key={entry.en}
+            style={({ pressed }) => [
+              styles.presetChip,
+              active && styles.presetChipActive,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => setGoal(entry.en)}>
+            <Text style={[styles.presetText, active && styles.presetTextActive]} numberOfLines={2}>
+              {display}
+            </Text>
+          </Pressable>
+        );
+      })
+    : PRESET_EN.map((en, i) => {
+        const active = goal === en;
+        return (
+          <Pressable
+            key={en}
+            style={({ pressed }) => [
+              styles.presetChip,
+              active && styles.presetChipActive,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => setGoal(en)}>
+            <Text style={[styles.presetText, active && styles.presetTextActive]} numberOfLines={2}>
+              {strings.presets[i] ?? en}
+            </Text>
+          </Pressable>
+        );
+      });
 
   return (
     <View style={[styles.root, isWide && styles.rootWide]}>

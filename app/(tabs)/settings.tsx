@@ -20,6 +20,7 @@ export default function SettingsScreen() {
   const { session, user, signOut } = useAuth();
   const [voice, setVoice] = useState<VoicePreference>('auto');
   const [voices, setVoices] = useState<Speech.Voice[]>([]);
+  const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(VOICE_KEY).then(val => {
@@ -31,6 +32,21 @@ export default function SettingsScreen() {
   const selectVoice = async (pref: VoicePreference) => {
     setVoice(pref);
     await AsyncStorage.setItem(VOICE_KEY, pref);
+
+    // Preview the selected voice immediately
+    Speech.stop();
+    const voiceId = pref === 'auto'
+      ? voices[0]?.identifier
+      : voices.find(v => v.identifier === pref)?.identifier;
+    setPreviewing(true);
+    Speech.speak('Hello! This is how I sound.', {
+      language: 'en-US',
+      rate: 0.92,
+      ...(voiceId ? { voice: voiceId } : {}),
+      onDone: () => setPreviewing(false),
+      onStopped: () => setPreviewing(false),
+      onError: () => setPreviewing(false),
+    });
   };
 
   const handleSignOut = () => {
@@ -63,8 +79,8 @@ export default function SettingsScreen() {
             <Text style={styles.sectionLabel}>VOICE</Text>
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Speaking Voice</Text>
-              <Text style={styles.cardSub}>
-                Used when reading suggested replies aloud during a call.
+              <Text style={[styles.cardSub, previewing && styles.cardSubPlaying]}>
+                {previewing ? '▶ Playing preview…' : 'Tap a voice to hear a preview.'}
               </Text>
               <View style={styles.chipRow}>
                 {voiceOptions.map(v => {
@@ -167,6 +183,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 15, fontWeight: '600', color: '#000000', marginBottom: 4 },
   cardSub: { fontSize: 13, color: '#6E6E73', lineHeight: 18, marginBottom: 14 },
+  cardSubPlaying: { color: '#007AFF', fontWeight: '500' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14, paddingVertical: 8,

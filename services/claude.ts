@@ -20,6 +20,19 @@ Your goal is to help the user successfully complete a task (e.g., change garbage
 
 ---
 
+## SPEAKER DETECTION (DO THIS FIRST)
+
+The transcribed audio may capture EITHER the phone agent speaking OR the user themselves speaking.
+
+Before responding, identify who is speaking:
+- **Phone agent / IVR**: formal greetings, questions to the caller, menu options, status updates, account lookups, hold notices. Example: "Thank you for calling, how can I help you today?"
+- **User/caller**: short confirmations, the user's own name or info, brief replies, things a caller says TO an agent. Example: "Yes.", "My name is John.", "OK, thank you.", "I need help with my bill."
+
+If the text is clearly the **USER** speaking (not the agent): respond with ONLY the single word **SKIP** — no other text, no punctuation.
+If the text is from the **PHONE AGENT** or you are uncertain: proceed with the full structured response below.
+
+---
+
 ## CONTEXT
 
 The user will provide:
@@ -106,25 +119,30 @@ If the issue seems resolved:
 
 Your mission is not just to translate, but to HELP THE USER COMPLETE THE CALL SUCCESSFULLY.`;
 
-function extractSection(text: string, header: string, nextHeader?: string): string {
-  const tag = `[${header}]`;
-  const startIdx = text.indexOf(tag);
-  if (startIdx === -1) return '';
-  const afterTag = text.slice(startIdx + tag.length);
-  if (nextHeader) {
-    const endIdx = afterTag.indexOf(`[${nextHeader}]`);
-    if (endIdx !== -1) return afterTag.slice(0, endIdx).trim();
+// Match [ANY_PREFIX / EnglishLabel] or [EnglishLabel] — tolerates translated prefixes,
+// missing/extra spaces around /, and markdown wrapping like **[...]***.
+function sectionRegex(engLabel: string) {
+  return new RegExp(`\\[[^\\]]*\\/\\s*${engLabel}\\]|\\[${engLabel}\\]`, 'i');
+}
+
+function extractSection(text: string, engLabel: string, nextEngLabel?: string): string {
+  const startMatch = sectionRegex(engLabel).exec(text);
+  if (!startMatch) return '';
+  const afterMatch = text.slice(startMatch.index + startMatch[0].length);
+  if (nextEngLabel) {
+    const endMatch = sectionRegex(nextEngLabel).exec(afterMatch);
+    if (endMatch) return afterMatch.slice(0, endMatch.index).trim();
   }
-  return afterTag.trim();
+  return afterMatch.trim();
 }
 
 export function parseResponse(text: string): ParsedResponse {
-  const notes = extractSection(text, '补充说明 / Notes');
+  const notes = extractSection(text, 'Notes');
   return {
-    understanding: extractSection(text, '理解 / Understanding', '翻译 / Translation'),
-    translation: extractSection(text, '翻译 / Translation', '下一步建议 / What to Do Next'),
-    nextStep: extractSection(text, '下一步建议 / What to Do Next', '推荐回复 / Suggested Reply'),
-    suggestedReply: extractSection(text, '推荐回复 / Suggested Reply', '补充说明 / Notes'),
+    understanding: extractSection(text, 'Understanding', 'Translation'),
+    translation: extractSection(text, 'Translation', 'What to Do Next'),
+    nextStep: extractSection(text, 'What to Do Next', 'Suggested Reply'),
+    suggestedReply: extractSection(text, 'Suggested Reply', 'Notes'),
     notes: notes || undefined,
   };
 }
@@ -134,7 +152,7 @@ export async function sendCallMessage(
   goal: string,
   messages: Message[],
   language = 'Chinese'
-): Promise<ParsedResponse> {
+): Promise<ParsedResponse | null> {
   const langInstruction = language === 'Chinese'
     ? 'Respond in Simplified Chinese for all sections except [推荐回复 / Suggested Reply] which must always be in English.'
     : `Respond in ${language} for all sections except [推荐回复 / Suggested Reply] which must always be in English that the user can speak aloud.`;
@@ -160,5 +178,7 @@ export async function sendCallMessage(
   }
 
   const data = await response.json() as { choices: { message: { content: string } }[] };
-  return parseResponse(data.choices[0].message.content);
+  const content = data.choices[0].message.content.trim();
+  if (/^skip$/i.test(content)) return null;
+  return parseResponse(content);
 }

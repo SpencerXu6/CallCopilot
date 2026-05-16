@@ -1,4 +1,9 @@
-export async function transcribeAudio(apiKey: string, source: string | Blob, language?: string): Promise<string> {
+export async function transcribeAudio(
+  apiKey: string,
+  source: string | Blob,
+  language?: string,
+  prompt?: string,
+): Promise<string> {
   const formData = new FormData();
   if (source instanceof Blob) {
     const ext = source.type.split('/')[1]?.split(';')[0] ?? 'webm';
@@ -11,7 +16,11 @@ export async function transcribeAudio(apiKey: string, source: string | Blob, lan
     } as unknown as Blob);
   }
   formData.append('model', 'whisper-large-v3-turbo');
+  formData.append('temperature', '0');
   if (language) formData.append('language', language);
+  // Only send prompt when there is real prior context (accumulated liveText).
+  // An empty or generic default prompt causes Whisper to hallucinate continuations of it.
+  if (prompt) formData.append('prompt', prompt);
 
   const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',

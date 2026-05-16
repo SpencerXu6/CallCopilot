@@ -136,8 +136,16 @@ app/
 
 services/
   supabase.ts          ← Supabase client; uses localStorage on web, expo-secure-store on native
-  claude.ts            ← Groq chat API: sendCallMessage(apiKey, goal, messages, language)
-  whisper.ts           ← Groq Whisper API: transcribeAudio(apiKey, source, language?) — source is string (native file URI) or Blob (web)
+  claude.ts            ← Groq chat API: sendCallMessage(apiKey, goal, messages, language) → ParsedResponse | null
+                           Returns null when AI responds "SKIP" (user speech detected). SPEAKER DETECTION section in
+                           system prompt instructs AI to identify speaker first; user speech → SKIP only; agent/uncertain
+                           → full structured analysis. Parser uses sectionRegex() — matches \[[^\]]*\/\s*EnglishLabel\]
+                           so it tolerates translated prefixes (Korean, Spanish, etc.), whitespace around /, markdown bold,
+                           and English-only headers. parseResponse() matches on English labels only.
+  whisper.ts           ← Groq Whisper API: transcribeAudio(apiKey, source, language?, prompt?)
+                           source: string (native file URI) or Blob (web). Always sends temperature=0. Sends prompt only
+                           when non-empty (VAD passes accumulated liveText). No default prompt — an empty default causes
+                           Whisper to hallucinate continuations of it.
   translate.ts         ← Groq translate-only: translateToEnglish(apiKey, text, language)
   tts.ts               ← expo-speech wrappers: speak(text, onDone?), stopSpeaking(), getEnglishVoices()
   history.ts           ← Supabase CRUD: saveCallSession(), loadCallSessions(), deleteCallSession()
@@ -145,10 +153,20 @@ services/
 hooks/
   use-auth.ts              ← useAuth() → { session, user, loading, signIn, signUp, signOut }
   use-call-session.ts      ← useCallSession(goal, language) → { entries, isLoading, error, send, recordCustomerReply }
+                               send() is non-blocking: if isLoadingRef.current, transcript is pushed onto pendingRef queue.
+                               sendOne() does the actual API call; drains queue in finally without dropping isLoading.
+                               null response (SKIP) → silently pops history entry, no entry card created.
   use-audio-recorder.ts    ← useAudioRecorder(apiKey, onTranscript) → { state, error, toggle } (native: expo-av)
   use-audio-recorder.web.ts← Web version — uses browser MediaRecorder API instead of expo-av
   use-speak-for-me.ts      ← useSpeakForMe(apiKey, language, onSpoken?) → { state, error, lastSpoken, toggle, cancel } (native)
   use-speak-for-me.web.ts  ← Web version — uses browser MediaRecorder API instead of expo-av
+  use-vad-recorder.ts      ← useVadRecorder(apiKey, onTranscript) → { state, liveText, error, start, stop } (native)
+                               Chunked auto-listen: records 1.5s segments, sends each to Whisper, accumulates liveText.
+                               Whisper called with temperature=0 and accumulated liveText as prompt (empty → no prompt).
+                               HALLUCINATIONS Set + isHallucination() filter known Whisper silence hallucinations.
+                               2 consecutive empty/hallucinated chunks (≈3s silence) → fires onTranscript(liveText).
+                               VadState: 'idle' | 'listening'
+  use-vad-recorder.web.ts  ← Web version — same chunked logic using browser MediaRecorder instead of expo-av
   use-breakpoint.ts        ← useBreakpoint() → { bp, isMobile, isTablet, isDesktop, isWide, width }
   use-color-scheme.ts      ← Re-exports useColorScheme (native)
   use-color-scheme.web.ts  ← SSR-safe useColorScheme (web)
@@ -161,7 +179,7 @@ components/
   (Expo scaffold components — unused)
 
 constants/
-  i18n.ts              ← UI text translations for all 8 languages; t(language) helper; PRESET_EN[6]
+  i18n.ts              ← UI text translations for all 8 languages; t(language) helper; PRESET_EN[6] (generic fallback); PRESETS_BY_USE_CASE (4 use-case sets × 6 presets, each with en + 8 language display labels)
   theme.ts             ← Original scaffold colors (not used by redesigned screens)
 
 assets/
@@ -297,9 +315,9 @@ On completion: saves `callcopilot_name`, `callcopilot_language`, `callcopilot_us
 1. **Hero gradient section** — `LinearGradient` (`#EBF4FF` → `#F2F2F7`), contains:
    - Header: "LingoLine" wordmark (20px bold) + "Sign Out" / "Sign In" button
    - Hero title (34px bold, language-specific) + personalized subtitle
-2. **Language selector** — section label + horizontal-scroll pill chips. Active: `#007AFF` border + blue tinted fill
+2. **Language selector** — section label + horizontal-scroll pill chips. Active: `#007AFF` border + blue tinted fill. **The user's saved language is always rendered first**; the remaining 7 follow in their original order.
 3. **Goal input** — white rounded card (`borderRadius: 14`) with subtle shadow (`shadowOpacity: 0.06`), plain `TextInput`
-4. **Common tasks** — section label + horizontal-scroll preset pills (6 realistic US call scenarios)
+4. **Common tasks** — section label + horizontal-scroll preset pills. **If the user selected a use case in Profile (Healthcare / Banking & Finance / Utilities & Home / Customer Service), the 6 presets shown are specific to that category (from `PRESETS_BY_USE_CASE`)**; "Other" or no selection falls back to the generic `PRESET_EN` 6.
 5. **Start Call** — full-width `#007AFF` button with colored shadow (`shadowColor: '#007AFF'`, `shadowOpacity: 0.4`)
 
 **Voice selector removed** — moved to Settings screen.
@@ -315,8 +333,21 @@ Route params: `goal` (string) + `language` (string).
 1. **Header** — "End" pill in `#FF3B30` (left); goal text in `#6E6E73` (center); language badge (right).
 2. **ScrollView** — conversation entries (`EntryView`), auto-scroll to bottom.
 3. **Loading row** — "Transcribing…" / "Translating…" / "Analyzing…"
-4. **Banners** — agent recording (red), speak-for-me recording (blue), speak-for-me speaking (blue + Stop pill)
-5. **Input bar** — `🗣️` speak-for-me + `🎙️` agent mic + white `TextInput` + `#007AFF` "Send" pill
+4. **Banners (top to bottom when active)**:
+   - Red: manual agent recording ("Recording — tap mic to stop")
+   - Green: auto-listen active — shows "Auto-listening…" or "Heard:" when liveText is present
+   - Green live box: shows accumulated `liveText` from VAD chunks (green left border card)
+   - Blue: speak-for-me recording
+   - Blue: speak-for-me speaking (+ Stop pill)
+5. **Input bar** — `🗣️` speak-for-me + `🎙️` agent mic + `👂` auto-listen toggle + white `TextInput` + `#007AFF` "Send" pill
+   - `👂` is green-tinted when active; disables 🎙️ and 🗣️ while running
+   - 🎙️ and 🗣️ disable 👂 while active
+
+**Auto-listen (👂) flow:**
+- Tap once → starts chunked recording loop (2.5s per chunk → Whisper → liveText updates → repeat)
+- As each chunk transcribes, text accumulates in the green `vadLiveBox` visible to the user
+- After 2 consecutive empty/silent chunks (~5s of silence), full accumulated text fires to AI automatically
+- liveText clears after sending. Tap 👂 again to stop at any time.
 
 On wide screens: constrained to `maxWidth: 800`.
 
@@ -339,6 +370,7 @@ New screen added in session 9.
 
 - `#F2F2F7` background, 34px "Settings" large title
 - **VOICE section** — white card with title + subtitle, chip row for voice selection (`Auto` + all Enhanced English voices from device). Same chip style as the former home screen voice selector. Persists to `callcopilot_voice` in AsyncStorage.
+- **Voice preview** — tapping any chip immediately stops current speech and plays `"Hello! This is how I sound."` using that voice's exact identifier (`voices[0]` for Auto). `previewing` state changes the subtitle to `"▶ Playing preview…"` (blue `#007AFF`) while playing; clears on `onDone`/`onStopped`/`onError`. Default subtitle: `"Tap a voice to hear a preview."`
 - **ACCOUNT section** (shown only when signed in):
   - White list card showing user's email
   - "Sign Out" button in `#FF3B30` (triggers Alert confirmation)
@@ -425,7 +457,10 @@ All other services unchanged from session 8.
 
 ## Presets — `constants/i18n.ts`
 
-Updated in session 9 to realistic US call scenarios. `PRESET_EN` (sent to AI, language-independent):
+Two preset structures exist side-by-side:
+
+### `PRESET_EN` — generic fallback (6 items)
+Used when no use case is selected or use case is "Other". Sent directly to the AI as the goal (always English).
 
 ```ts
 export const PRESET_EN = [
@@ -438,7 +473,34 @@ export const PRESET_EN = [
 ];
 ```
 
-Each language has matching display-language translations in the `presets` array.
+Each language has matching display translations in `UI[lang].presets` (parallel array).
+
+### `PRESETS_BY_USE_CASE` — use-case-specific presets
+`Record<string, PresetEntry[]>` with 4 keys: `'Healthcare'`, `'Banking & Finance'`, `'Utilities & Home'`, `'Customer Service'`. Each has 6 `PresetEntry` objects:
+
+```ts
+interface PresetEntry {
+  en: string;        // goal sent to AI — always English
+  Chinese: string;   // display label in each language
+  Spanish: string;
+  French: string;
+  Korean: string;
+  Japanese: string;
+  Portuguese: string;
+  Vietnamese: string;
+  Hindi: string;
+}
+```
+
+The home screen picks `entry.en` as the goal and `entry[language]` as the chip label. If the language key is missing it falls back to `entry.en`.
+
+**Use case → presets mapping:**
+| Use Case | Sample presets |
+|---|---|
+| Healthcare | Reschedule doctor, verify insurance, request referral, prior auth status, procedure cost, medical records |
+| Banking & Finance | Dispute charge, report lost card, dispute fraud, declined payment, increase credit limit, set up autopay |
+| Utilities & Home | Internet outage, downgrade plan, schedule technician, electricity bill issue, trash schedule, transfer utilities |
+| Customer Service | Cancel subscription, escalate to supervisor, return item, missing package, cheaper plan, dispute charge for credit |
 
 ---
 
@@ -458,7 +520,7 @@ npx expo start --web
 
 ---
 
-## Current State (end of session 10)
+## Current State (end of session 13)
 
 **Working:**
 - ✅ Sign up / log in with Supabase email auth (native + web)
@@ -495,6 +557,14 @@ npx expo start --web
 - ✅ **Landing page rebranded** — all "CallCopilot" references replaced with "LingoLine"; 📞 emoji logo boxes replaced with the real `logo.png` image in nav and footer; copy updated to reflect 8-language support.
 - ✅ **Web audio recording fixed** — `expo-av` Audio.Recording is native-only and silently fails on web. Created `use-audio-recorder.web.ts` and `use-speak-for-me.web.ts` using the browser `MediaRecorder` API (Expo auto-selects `.web.ts` on web). Updated `whisper.ts` to accept `string | Blob` so native passes a file URI and web passes a `Blob` directly.
 - ✅ **AI memory of customer replies** — "Speak for Me" translated replies are now recorded into the conversation history. `useCallSession` exposes `recordCustomerReply(text)` which pushes `[Customer replied in English]: "..."` into `history.current`. `useSpeakForMe` (both native and web) accepts an `onSpoken` callback fired with the English text before TTS plays. `call.tsx` passes `recordCustomerReply` as the callback. The AI system prompt was updated to instruct the model to acknowledge previous customer replies and not re-suggest what was already said.
+- ✅ **Saved language always first** — Home screen reads `callcopilot_language` from AsyncStorage and renders that language chip first; the other 7 follow in their original order. Applies on every app open and reflects changes saved from Profile.
+- ✅ **Use-case-specific presets** — Home screen reads `callcopilot_use_case` and shows 6 presets relevant to the selected category via `PRESETS_BY_USE_CASE` in `constants/i18n.ts`. Healthcare, Banking & Finance, Utilities & Home, and Customer Service each have their own 6-item preset set (each with `en` goal + display label in all 8 languages). "Other" or no selection falls back to the original generic `PRESET_EN` 6.
+- ✅ **Auto-listen (👂) feature** — `useVadRecorder` hook (native + web) records 1.5s chunks in a loop. Each chunk is sent to Whisper (temperature=0; prior liveText passed as prompt when non-empty). A `HALLUCINATIONS` blocklist filters known Whisper silence phrases. After 2 consecutive silent/hallucinated chunks (~3s silence), liveText is auto-sent to the AI. Green banner + live text box shows accumulated transcript in near-real-time.
+- ✅ **Speaker detection** — System prompt instructs the AI to identify whether captured audio is from the phone agent or the user. User speech → AI responds `SKIP` → `sendCallMessage` returns `null` → entry silently discarded. Prevents accidental analysis of the user's own voice picked up by the mic.
+- ✅ **Queue during analysis** — `useCallSession` uses `isLoadingRef` + `pendingRef` queue. Transcripts arriving while the AI is analyzing are buffered and processed sequentially when analysis completes. `isLoading` stays true between queued items — no words are dropped and the UI shows continuous loading.
+- ✅ **Robust response parser** — `extractSection()` in `claude.ts` now uses a regex (`\[[^\]]*\/\s*EnglishLabel\]`) instead of exact `indexOf`. Tolerates translated Chinese prefixes for other languages, whitespace around `/`, markdown bold wrapping, and English-only headers. Fixes empty response boxes for non-Chinese languages.
+- ✅ **Whisper temperature=0 + contextual prompt** — `transcribeAudio()` always sends `temperature=0` for deterministic output. Passes accumulated `liveText` as `prompt` (VAD only, when non-empty) for context continuity. No default prompt — a generic default causes Whisper to hallucinate continuations of it.
+- ✅ **Voice preview in Settings** — Tapping a voice chip immediately plays `"Hello! This is how I sound."` using that voice. Subtitle shows `"▶ Playing preview…"` in blue while playing.
 
 **Known limitations:**
 - iOS cannot capture live call audio — user must use speaker mode
@@ -511,11 +581,14 @@ npx expo start --web
 ## Future Features
 
 1. **Backend API proxy** — move Groq key server-side before public launch (highest priority)
-2. **Dark mode** — full theme refactor across all screens
-3. **Social auth** — Google / Apple sign-in via Supabase OAuth
-4. **Custom fonts** — `@expo-google-fonts/plus-jakarta-sans` or Inter
-5. **In-app API key settings screen**
-6. **Android continuous listen mode** — auto-loop recording in chunks
+2. **Real-time transcription (Option A — planned)** — upgrade the current chunked Whisper approach to truly word-by-word real-time transcription. Two-track plan:
+   - **Web**: Replace `useVadRecorder.web.ts` with the browser `SpeechRecognition` API (built-in, free, instant interim results). Show words as they appear.
+   - **Native (iOS/Android)**: Add `@react-native-voice/voice` (requires Expo Dev Client, not Expo Go) to use the native OS speech recognizer. Alternatively use Deepgram or AssemblyAI streaming API.
+   - Both tracks expose the same `{ state, liveText, error, start, stop }` interface as the current `useVadRecorder` — call.tsx needs no changes beyond swapping the hook.
+3. **Dark mode** — full theme refactor across all screens
+4. **Social auth** — Google / Apple sign-in via Supabase OAuth
+5. **Custom fonts** — `@expo-google-fonts/plus-jakarta-sans` or Inter
+6. **In-app API key settings screen**
 
 ---
 
